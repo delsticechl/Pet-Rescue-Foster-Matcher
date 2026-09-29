@@ -1,0 +1,6 @@
+{
+  "name": "Pet Rescue & Foster Matcher",
+  "description": "Pet Rescue & Foster Matcher platform with 3NF relational database architecture, intelligent adoption matching, transaction-controlled application workflows, medical records, and pet care tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
