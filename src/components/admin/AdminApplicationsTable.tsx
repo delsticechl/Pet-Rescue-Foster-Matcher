@@ -482,8 +482,10 @@ export const AdminApplicationsTable: React.FC<AdminApplicationsTableProps> = ({
               <div><strong>Duration:</strong> {txResultModal.executionTimeMs}ms</div>
               <div className="text-slate-400 mt-2"><strong>Execution Steps:</strong></div>
               <ul className="list-disc list-inside space-y-1 text-slate-300">
-                {txResultModal.steps.map((st, i) => (
-                  <li key={i}>{st}</li>
+                {txResultModal.steps.map((st: any, i) => (
+                  <li key={i}>
+                    <strong>[{st.step}]</strong> {st.message} ({st.affectedRows} hàng bị ảnh hưởng)
+                  </li>
                 ))}
               </ul>
             </div>

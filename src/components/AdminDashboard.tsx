@@ -274,12 +274,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           applications={applications}
           currentUser={currentUser}
           onRefresh={handleRefreshAll}
-          onEmailNotificationSent={(emailLog) => {
-            showToast(
-              'SMTP Email Dispatched!',
-              `Sent status update notification to ${emailLog.recipientEmail} (${emailLog.status})`
-            );
-          }}
+          showToast={showToast}
           onOpenCsvExport={() => setIsCsvModalOpen(true)}
         />
       )}
@@ -288,10 +283,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeAdminTab === 'medical' && (
         <AdminMedicalRecords
           pets={pets}
-          currentUser={currentUser}
+          selectedPetForModal={selectedPetForMedical}
+          onCloseModal={() => setSelectedPetForMedical(null)}
           onRefresh={handleRefreshAll}
-          targetPet={selectedPetForMedical}
-          onClearTargetPet={() => setSelectedPetForMedical(null)}
+          showToast={showToast}
         />
       )}
 
@@ -318,6 +313,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <PetQrCodeModal
           pet={selectedPetForQr}
           onClose={() => setSelectedPetForQr(null)}
+          showToast={showToast}
         />
       )}
 
@@ -329,6 +325,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           pets={pets}
           applications={applications}
           shelters={shelters}
+          showToast={showToast}
         />
       )}
     </div>

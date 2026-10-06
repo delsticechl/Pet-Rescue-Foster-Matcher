@@ -31,7 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [userDropdownOpen, setUserDropdownOpen] = React.useState(false);
 
-  const isAdmin = currentUser?.role === 'Admin';
+const isAdmin = currentUser?.role === 'Admin';
 
   const navItems = [
     { id: 'pets', label: 'Find Pets', icon: Search },
@@ -47,11 +47,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             badge: 'Admin',
             badgeCount: applicationCount,
           },
+          { 
+            id: 'erd', 
+            label: 'DB & REST API Studio', 
+            icon: Database, 
+            badge: 'REST' 
+          },
         ]
       : []),
-    { id: 'erd', label: 'DB & REST API Studio', icon: Database, badge: 'REST' },
   ];
-
+  
   return (
     <header
       id="main-header"

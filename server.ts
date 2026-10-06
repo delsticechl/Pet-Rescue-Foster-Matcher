@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 import {
   INITIAL_USERS,
@@ -504,7 +505,7 @@ function createAndRecordSimulatedEmail(
 
   const now = new Date();
   const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
-  const logId = `EML-${Date.now().toString().slice(-4)}`;
+  const logId = `EML-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
 
   const log: EmailNotificationLog = {
     logId,
@@ -672,7 +673,7 @@ async function startServer() {
         await MySqlService.execute(
           `INSERT IGNORE INTO shelters (shelter_id, shelter_name, address, phone, email, manager_id, capacity, current_occupancy, image_url)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [s.shelterId, s.shelterName, s.address, s.phone, s.email, s.managerId, s.capacity, s.currentOccupancy || 0, s.imageUrl || '']
+          [s.shelterId, s.shelterName, s.address, s.phone, s.email, s.managerId, s.capacity, s.currentPetsCount || 0, s.imageUrl || '']
         );
       }
 
@@ -711,9 +712,9 @@ async function startServer() {
           }
         } else if (p.imageUrl) {
           await MySqlService.execute(
-            `INSERT IGNORE INTO pet_images (image_id, pet_id, image_url, is_primary)
-             VALUES (?, ?, ?, 1)`,
-            [`IMG-${p.petId}-1`, p.petId, p.imageUrl]
+            `INSERT IGNORE INTO pet_images (image_id, pet_id, image_url, is_primary, caption)
+             VALUES (?, ?, ?, 1, ?)`,
+            [`IMG-${p.petId}-1`, p.petId, p.imageUrl, '']
           );
         }
 
@@ -825,6 +826,24 @@ async function startServer() {
       return res.status(404).json({ error: 'User not found', code: 'USER_NOT_FOUND', statusCode: 404 });
     }
     res.json(user);
+  });
+
+  apiRouter.put('/users/:id', (req, res) => {
+    const idx = users.findIndex((u) => u.userId === req.params.id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'User not found', code: 'USER_NOT_FOUND', statusCode: 404 });
+    }
+    users[idx] = { ...users[idx], ...req.body, userId: req.params.id };
+    res.json(users[idx]);
+  });
+
+  apiRouter.patch('/users/:id', (req, res) => {
+    const idx = users.findIndex((u) => u.userId === req.params.id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'User not found', code: 'USER_NOT_FOUND', statusCode: 404 });
+    }
+    users[idx] = { ...users[idx], ...req.body, userId: req.params.id };
+    res.json(users[idx]);
   });
 
   apiRouter.post('/auth/login', (req, res) => {
@@ -968,6 +987,16 @@ async function startServer() {
     if (idx === -1) {
       return res.status(404).json({ error: 'Shelter not found', code: 'SHELTER_NOT_FOUND', statusCode: 404 });
     }
+
+    // Cascade Delete: Xóa tất cả pets thuộc shelter và các dữ liệu liên quan của pets đó
+    const shelterIdToDelete = req.params.id;
+    const petsInShelter = pets.filter((p) => p.shelterId === shelterIdToDelete);
+    petsInShelter.forEach((pet) => {
+      applications = applications.filter((a) => a.petId !== pet.petId);
+      careLogs = careLogs.filter((c) => c.petId !== pet.petId);
+    });
+    pets = pets.filter((p) => p.shelterId !== shelterIdToDelete);
+
     const removed = shelters.splice(idx, 1)[0];
     res.json({ success: true, message: `Shelter ${removed.shelterName} deleted.`, deletedShelterId: req.params.id });
   });
@@ -1052,9 +1081,14 @@ async function startServer() {
     }
 
     const totalCount = result.length;
-    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    let pageNum = Math.max(1, parseInt(page as string, 10) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || (page ? 10 : totalCount)));
     const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
+    // Tự động lùi về trang cuối nếu pageNum vượt quá số trang thực tế
+    if (pageNum > totalPages) {
+      pageNum = totalPages;
+    }
 
     res.setHeader('X-Total-Count', String(totalCount));
     res.setHeader('X-Page', String(pageNum));
@@ -1214,7 +1248,7 @@ async function startServer() {
     if (req.body.imageUrl) {
       const isDataUrl = req.body.imageUrl.startsWith('data:');
       const newImgObj = {
-        imageId: `IMG-${req.params.id}-${Date.now().toString().slice(-4)}`,
+        imageId: `IMG-${req.params.id}-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
         petId: req.params.id,
         imageUrl: req.body.imageUrl,
         isPrimary: true,
@@ -1267,10 +1301,10 @@ async function startServer() {
   });
 
   apiRouter.delete('/pets/:id', (req, res) => {
-    const userRole = req.headers['x-user-role'] || req.query.requesterRole;
+    const userRole = req.headers['x-user-role'] || req.body.requesterRole;
     if (userRole && userRole !== 'Admin' && userRole !== 'RescueStaff') {
       return res.status(403).json({
-        error: 'Access denied: Only Administrators can delete pet records.',
+        error: 'Access denied: Only Administrators or RescueStaff can delete pet records.',
         code: 'FORBIDDEN',
       });
     }
@@ -1279,6 +1313,11 @@ async function startServer() {
     if (index === -1) {
       return res.status(404).json({ error: 'Pet not found', code: 'PET_NOT_FOUND', statusCode: 404 });
     }
+
+    // Cascade Delete: Xóa tất cả các hồ sơ đăng ký và nhật ký chăm sóc liên quan
+    const petIdToDelete = req.params.id;
+    applications = applications.filter((a) => a.petId !== petIdToDelete);
+    careLogs = careLogs.filter((c) => c.petId !== petIdToDelete);
 
     const deletedPet = pets.splice(index, 1)[0];
     res.json({
@@ -1400,7 +1439,7 @@ async function startServer() {
 
     if (!pet.medicalRecords) pet.medicalRecords = [];
 
-    const newRecordId = `MED-${Date.now().toString().slice(-4)}`;
+    const newRecordId = `MED-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
     const newRecord: PetMedicalRecord = {
       recordId: newRecordId,
       petId: pet.petId,
@@ -1489,7 +1528,7 @@ async function startServer() {
     if (nextFollowUp || newDiagnosis) {
       if (!pet.medicalRecords) pet.medicalRecords = [];
       newRecord = {
-        recordId: `MED-${Date.now().toString().slice(-4)}`,
+        recordId: `MED-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
         petId: pet.petId,
         medicalDate: new Date().toISOString().split('T')[0],
         diagnosis: newDiagnosis || `Hoàn tất đợt tái khám (${targetRecord?.diagnosis || 'Định kỳ'})`,
@@ -1523,7 +1562,7 @@ async function startServer() {
     const recipientName = reminder.adopterName || 'Nhân viên trạm cứu hộ';
 
     const emailLog: EmailNotificationLog = {
-      logId: `EML-MED-${Date.now().toString().slice(-4)}`,
+      logId: `EML-MED-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
       applicationId: `HEALTH-${reminder.petId}`,
       recipientEmail,
       recipientName,
@@ -1629,10 +1668,15 @@ async function startServer() {
       return res.status(400).json({ error: 'Thiếu thông tin petId hoặc userId', code: 'VALIDATION_ERROR' });
     }
 
+    const userExists = users.some((u) => u.userId === userId);
+    if (!userExists) {
+      return res.status(400).json({ error: `Người dùng '${userId}' không tồn tại. Ràng buộc khóa ngoại thất bại.`, code: 'FOREIGN_KEY_VIOLATION' });
+    }
+
     try {
       triggerCheckPetNotAdoptedBeforeApply(petId);
 
-      const newAppId = `APP-${Date.now().toString().slice(-4)}`;
+      const newAppId = `APP-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
       const newApp: AdoptionApplication = {
         applicationId: newAppId,
         petId,
@@ -1752,7 +1796,7 @@ async function startServer() {
       return res.status(400).json({ error: 'Vui lòng cung cấp PetID, UserID và Ghi chú nhật ký', code: 'VALIDATION_ERROR' });
     }
 
-    const newLogId = `LOG-${Date.now().toString().slice(-4)}`;
+    const newLogId = `LOG-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
     const newLog: CareLog = {
       logId: newLogId,
       petId,
@@ -1782,10 +1826,13 @@ async function startServer() {
 
   // DONATIONS
   apiRouter.get('/donations', (req, res) => {
-    const { shelterId } = req.query;
+    const { shelterId, userId } = req.query;
     let list = donations;
     if (shelterId && shelterId !== 'Tất cả') {
       list = list.filter((d) => d.shelterId === shelterId);
+    }
+    if (userId) {
+      list = list.filter((d) => d.userId === userId);
     }
     const enriched = list.map((d) => {
       const shelter = shelters.find((s) => s.shelterId === d.shelterId);
@@ -1812,7 +1859,7 @@ async function startServer() {
       return res.status(400).json({ error: 'Số tiền và Trạm nhận quyên góp không hợp lệ', code: 'VALIDATION_ERROR' });
     }
 
-    const newDonationId = `DON-${Date.now().toString().slice(-4)}`;
+    const newDonationId = `DON-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
     const newDonation: Donation = {
       donationId: newDonationId,
       shelterId,

@@ -402,7 +402,7 @@ export const App: React.FC = () => {
           <SheltersAndDonation currentUser={currentUser} />
         )}
 
-        {/* VIEW 5: ADMIN / STAFF DASHBOARD (Restricted to Admin account only) */}
+{/* VIEW 5: ADMIN / STAFF DASHBOARD (Restricted to Admin account only) */}
         {activeTab === 'admin' && currentUser?.role === 'Admin' && (
           <AdminDashboard
             currentUser={currentUser}
@@ -412,10 +412,11 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* VIEW 6: ERD & SQL STUDIO */}
-        {activeTab === 'erd' && <SqlErdStudio />}
+        {/* VIEW 6: ERD & SQL STUDIO (Restricted to Admin account only) */}
+        {activeTab === 'erd' && currentUser?.role === 'Admin' && (
+          <SqlErdStudio />
+        )}
       </main>
-
       {/* Footer */}
       <footer className="mt-16 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-8 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">

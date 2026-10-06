@@ -639,7 +639,7 @@ export const MySqlService = {
       email: r.email,
       managerId: r.manager_id,
       capacity: r.capacity,
-      currentOccupancy: r.current_occupancy || 0,
+      currentPetsCount: r.current_occupancy || 0,
       imageUrl: r.image_url || 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=800&q=80',
     }));
   },
