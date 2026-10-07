@@ -1,150 +1,115 @@
 # 🐾 Pawfund - Pet Rescue & Foster Relational Network
 
-> Nền tảng toàn diện quản lý trạm cứu hộ, hỗ trợ quy trình nhận nuôi chuẩn hóa giao dịch ACID và kết nối thú cưng thông minh bằng Trí tuệ nhân tạo (Google Gemini AI).
+> A comprehensive platform for managing rescue shelters, facilitating ACID transaction-compliant adoption workflows, and matching pets with adopters using Artificial Intelligence (Google Gemini AI).
 
-## 📌 Giới thiệu dự án
+## 📌 Project Overview
 
-**Pawfund** là giải pháp phần mềm hướng tới việc tối ưu hóa quy trình cứu hộ, chăm sóc y tế và nhận nuôi thú cưng. Hệ thống được thiết kế dựa trên chuẩn chuẩn hóa dữ liệu **3NF (Third Normal Form)**, đảm bảo tính toàn vẹn dữ liệu nghiêm ngặt trong môi trường có nhiều lượt đăng ký nhận nuôi đồng thời.
+**Pawfund** is a software solution designed to optimize rescue operations, clinical care management, and pet adoption processes. Built upon a **3NF (Third Normal Form)** database architecture, the system guarantees strict data integrity during concurrent adoption requests.
 
-Hệ thống giải quyết bài toán quản lý phân tán bằng cách hợp nhất thông tin giữa người nhận nuôi (Adopter), trạm cứu hộ (Shelter), hồ sơ thú cưng (Pets), nhật ký y tế (Clinical Logs) và các khoản quyên góp (Donations).
+The platform addresses fragmented management by consolidating information across Adopters, Shelters, Pet profiles, Clinical logs, and Financial donations into a unified system.
 
-## 👥 Tác giả & Đóng góp (Authors)
+## 👥 Authors & Contributors
 
-Dự án được nghiên cứu và phát triển bởi:
+This project was researched and developed by:
 
-* 👩‍💻 **Hoàng Thị Khánh Huyền** — *Co-Author & Core Developer*
+* 👩‍💻 **Hoang Thi Khanh Huyen** — *Co-Author & Core Developer*
+* 👩‍💻 **Ngo Huynh Mai Khoi** — *Co-Author & Core Developer*
 
-*  👩‍💻**Ngô Huỳnh Mai Khôi** — *Co-Author & Core Developer*
+## 🚀 Key Features
 
-## 🚀 Tính năng nổi bật
+### 1. 🤖 Smart AI Matchmaker
+* Integrates **Google Gemini API** to analyze living environments, leisure time, and prior pet care experience of candidates.
+* Evaluates and calculates percentage compatibility scores between potential adopters and individual pet characteristics.
 
-### 1. 🤖 Smart AI Matchmaker (Gợi ý nhận nuôi thông minh)
+### 2. 🛡️ ACID Transaction Management
+* Manages adoption applications while strictly enforcing **ACID** database properties.
+* Automatically updates pet status to `Adopted` and resolves competing applications upon approval.
+* Integrates a simulated SMTP email engine to send automated status notifications to applicants.
 
-* Tích hợp **Google Gemini API** để phân tích điều kiện sống, thời gian rảnh, kinh nghiệm nuôi của ứng viên.
+### 3. 📋 Care & Clinical Logs Management
+* Tracks vaccination history, deworming schedules, spay/neuter operations, and health metrics for each pet in real time.
 
-* Đánh giá và tính toán % độ tương thích giữa người nhận nuôi và tính cách từng thú cưng.
+### 4. 🏥 Shelter Management & Donations
+* Monitors capacity limits and real-time pet occupancy across multiple rescue centers.
+* Maintains a transparent historical record of donations from benefactors.
 
-### 2. 🛡️ Chuẩn hóa Giao dịch ACID (Adoption Transaction Management)
-
-* Quản lý đơn đăng ký nhận nuôi (`Adoption Applications`) đảm bảo nguyên tắc **ACID**.
-
-* Tự động khóa trạng thái thú cưng (`Adopted`) và giải quyết các đơn đăng ký cạnh tranh khác ngay khi đơn chính được phê duyệt.
-
-* Tích hợp giả lập SMTP Email tự động gửi phản hồi kết quả tới ứng viên.
-
-### 3. 📋 Quản lý Hồ sơ Y tế & Nhật ký Chăm sóc (Care & Clinical Logs)
-
-* Theo dõi lịch sử tiêm phòng, tẩy giun, phẫu thuật triệt sản và chỉ số sức khỏe của từng thú cưng theo thời gian thực.
-
-### 4. 🏥 Quản lý Trạm Cứu Hộ & Quyên Góp (Shelters & Donations)
-
-* Theo dõi sức chứa (`capacity`), số lượng thú cưng hiện tại (`currentOccupancy`) của từng trung tâm.
-
-* Minh bạch lịch sử quyên góp từ các nhà hào tâm.
-
-## 🛠️ Công nghệ sử dụng (Tech Stack)
+## 🛠️ Tech Stack
 
 ### **Frontend**
-
 * **Framework:** React, TypeScript
-
 * **Styling:** Tailwind CSS, Lucide React Icons
-
 * **UI Components:** Dynamic Modals, Real-time Status Badges, Data Tables
 
 ### **Backend**
-
 * **Runtime:** Node.js (Express Framework)
-
 * **Language:** TypeScript
-
-* **RESTful API:** Thiết kế endpoint chuẩn hóa cho CRUD operations
-
-* **Authentication & Authorization:** Phân quyền theo vai trò (`AdminStaff`, `RescueStaff`, `Adopter`)
+* **RESTful API:** Standardized endpoints for CRUD operations
+* **Authentication & Authorization:** Role-Based Access Control (`AdminStaff`, `RescueStaff`, `Adopter`)
 
 ### **Database & AI**
-
-* **Database:** MySQL / Relational Database Model (Chuẩn hóa 3NF)
-
+* **Database:** MySQL / Relational Database Model (3NF Normalized)
 * **AI Framework:** Google Gemini API (`@google/genai`)
 
-## 📐 Cấu trúc Cơ sở Dữ liệu (3NF Schema)
+## 📐 Database Architecture (3NF Schema)
 
-Hệ thống được thiết kế với các thực thể cốt lõi:
+The system is engineered around core relational entities:
 
-* `USERS`: Thông tin tài khoản, vai trò và lịch sử tương tác.
+* `USERS`: User accounts, authentication roles, and profile details.
+* `SHELTERS`: Rescue center profiles and capacity tracking.
+* `PETS`: Detailed pet profiles (Foreign Key: `shelterId`).
+* `APPLICATIONS`: Adoption applications (Foreign Keys: `userId`, `petId`).
+* `CARE_LOGS`: Medical history & vaccination logs (Foreign Key: `petId`).
+* `DONATIONS`: Sponsorship records (Foreign Keys: `userId`, `shelterId`).
 
-* `SHELTERS`: Danh sách các trung tâm cứu hộ và sức chứa.
+## ⚙️ Installation & Setup
 
-* `PETS`: Hồ sơ chi tiết thú cưng (Khóa ngoại `shelterId`).
+### **Prerequisites:**
+* Node.js (v18.x or higher)
+* MySQL Server (v8.0 or higher)
+* NPM or Yarn
 
-* `APPLICATIONS`: Đơn đăng ký nhận nuôi (Khóa ngoại `userId`, `petId`).
+### **Step-by-step Execution:**
 
-* `CARE_LOGS`: Nhật ký khám chữa bệnh & tiêm phòng (Khóa ngoại `petId`).
-
-* `DONATIONS`: Lịch sử tài trợ (Khóa ngoại `userId`, `shelterId`).
-
-## ⚙️ Hướng dẫn Cài đặt & Khởi chạy
-
-### **Yêu cầu hệ thống:**
-
-* Node.js (Phiên bản 18.x trở lên)
-
-* MySQL Server (Phiên bản 8.0 trở lên)
-
-* NPM hoặc Yarn
-
-### **Các bước thực hiện:**
-
-1. **Clone repository về máy:**
-
-   ```
+1. **Clone the repository:**
+   ```bash
    git clone https://github.com/your-username/pawfund.git
    cd pawfund
-   
    ```
 
-2. **Cài đặt các gói phụ thuộc (Dependencies):**
-
-   ```
+2. **Install dependencies:**
+   ```bash
    npm install
-   
    ```
 
-3. **Cấu hình biến môi trường (`.env`):**
-   Tạo file `.env` tại thư mục gốc của dự án và điền các thông tin sau:
-
-   ```
+3. **Configure Environment Variables (`.env`):**
+   Create a `.env` file in the root directory and populate it with your environment settings:
+   ```env
    PORT=3000
    GEMINI_API_KEY=your_gemini_api_key_here
    DB_HOST=localhost
    DB_USER=root
    DB_PASSWORD=your_password
    DB_NAME=pawfund_db
-   
    ```
 
-4. **Khởi chạy ứng dụng:**
-
-   ```
-   # Chạy chế độ phát triển (Development)
+4. **Launch the application:**
+   ```bash
+   # Development mode
    npm run dev
-   
    ```
+   Open your browser and navigate to `http://localhost:3000`.
 
-   Mở trình duyệt và truy cập tại địa chỉ: `http://localhost:3000`
+## 📡 Primary API Endpoints
 
-## 📡 API Endpoints Chính
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/pets` | Fetch pet list (supports pagination & filtering) |
+| `POST` | `/applications` | Submit an adoption application |
+| `PUT` | `/applications/:id/status` | Update application status (Approve/Reject via ACID transaction) |
+| `GET` | `/shelters` | Fetch shelter list and occupancy statistics |
+| `POST` | `/care-logs` | Add a clinical/vaccination entry for a pet |
+| `POST` | `/matchmaker` | Trigger Gemini AI matching algorithm |
 
-| Phương thức | Endpoint | Mô tả | 
-| ----- | ----- | ----- | 
-| `GET` | `/pets` | Lấy danh sách thú cưng (Hỗ trợ phân trang & bộ lọc) | 
-| `POST` | `/applications` | Gửi đơn đăng ký nhận nuôi thú cưng | 
-| `PUT` | `/applications/:id/status` | Cập nhật trạng thái đơn (Duyệt/Từ chối theo giao dịch ACID) | 
-| `GET` | `/shelters` | Lấy danh sách và thống kê sức chứa các trạm cứu hộ | 
-| `POST` | `/care-logs` | Thêm nhật ký y tế/tiêm phòng cho thú cưng | 
-| `POST` | `/matchmaker` | Gọi Gemini AI gợi ý ghép đôi thú cưng | 
+## 📄 License
 
-## 📄 Bản quyền (License)
-
-Dự án được phát triển phục vụ mục đích học thuật và nghiên cứu công nghệ. Tất cả quyền sở hữu thuộc về các tác giả **Hoàng Thị Khánh Huyền** và **Ngô Huỳnh Mai Khôi**.
+Developed for academic research and technology demonstration purposes. All rights reserved by **Hoang Thi Khanh Huyen** and **Ngo Huynh Mai Khoi**.
