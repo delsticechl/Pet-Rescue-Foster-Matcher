@@ -7,25 +7,14 @@ import {
   Trash2,
   Stethoscope,
   Heart,
-  Sparkles,
   Check,
   X,
-  Eye,
   ShieldCheck,
-  Building2,
-  Tag,
-  Zap,
-  Info,
-  Layers,
   LayoutGrid,
   List,
-  AlertTriangle,
-  QrCode,
-  FileSpreadsheet,
-  Download,
   Upload,
   Image as ImageIcon,
-  FileText,
+  AlertTriangle,
 } from 'lucide-react';
 import { Pet, Shelter, PetSpecies, PetHealthStatus, EnergyLevel, AdoptionStatus, User } from '../../types';
 import { api } from '../../services/api';
@@ -36,8 +25,6 @@ interface AdminPetManagerProps {
   currentUser: User;
   onRefresh: () => void;
   onOpenMedicalModal: (pet: Pet) => void;
-  onOpenQrCode?: (pet: Pet) => void;
-  onOpenCsvExport?: () => void;
 }
 
 const SAMPLE_PET_IMAGES = [
@@ -45,16 +32,7 @@ const SAMPLE_PET_IMAGES = [
   'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=800&q=80',
   'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80',
   'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=800&q=80',
 ];
-
-function formatBytes(bytes?: number): string {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
 
 export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   pets,
@@ -62,16 +40,12 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   currentUser,
   onRefresh,
   onOpenMedicalModal,
-  onOpenQrCode,
-  onOpenCsvExport,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [shelterFilter, setShelterFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
-  // File Input References for Uploading from Computer
   const addFileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,25 +53,30 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   const [openAddModal, setOpenAddModal] = useState(false);
   const [newPet, setNewPet] = useState({
     name: '',
-    species: 'Dog' as PetSpecies,
-    breed: 'Mixed Breed',
+    species: 'Chó' as PetSpecies,
+    breed: 'Cún Cỏ Lai',
     ageMonths: 12,
-    gender: 'Male' as 'Male' | 'Female' | 'Đực' | 'Cái',
-    healthStatus: 'Healthy' as PetHealthStatus,
+    gender: 'Đực' as 'Đực' | 'Cái',
+    healthStatus: 'Bình thường' as PetHealthStatus,
     vaccinated: true,
     sterilized: true,
     adoptionStatus: 'Ready' as AdoptionStatus,
-    energyLevel: 'Medium' as EnergyLevel,
+    energyLevel: 'Trung bình' as EnergyLevel,
     goodWithKids: true,
     goodWithPets: true,
     requiresYard: false,
-    description: 'Recently rescued, friendly and looking for a caring forever family.',
+    description: 'Bé vừa được trạm cứu hộ tiếp nhận, rất ngoan ngoãn và quấn người.',
     shelterId: shelters[0]?.shelterId || 'SHL-01',
     imageUrl: SAMPLE_PET_IMAGES[0],
-    fileName: 'sample_pet_1.jpg',
-    fileSize: 185000,
+    fileName: 'pet_photo.jpg',
+    fileSize: 180000,
     mimeType: 'image/jpeg',
-    uploadSource: 'LocalUpload' as 'LocalUpload' | 'ExternalURL',
+    // Initial Medical Record
+    initialDiagnosis: 'Khám tổng quát khi tiếp nhận vào trạm',
+    initialTreatment: 'Đã tiêm phòng mũi 1 và tẩy giun định kỳ',
+    vetName: 'Bác sĩ thú y PawFund',
+    medications: 'Thuốc tẩy giun Drontal, vắc-xin 7 bệnh',
+    medicalDate: new Date().toISOString().split('T')[0],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -105,14 +84,14 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
   const [editForm, setEditForm] = useState<any>(null);
 
-  // Delete Pet Confirmation Modal State
+  // Delete Pet Confirmation
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Local File Upload Handler
+  // Handle Local File Upload from User's Device
   const handleFileUpload = (file: File, target: 'add' | 'edit') => {
     if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid image file (PNG, JPG, JPEG, WEBP, or GIF)');
+      alert('Vui lòng chọn một tệp hình ảnh hợp lệ (PNG, JPG, JPEG, WEBP hoặc GIF)');
       return;
     }
 
@@ -126,7 +105,6 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
-          uploadSource: 'LocalUpload',
         }));
       } else if (editForm) {
         setEditForm((prev: any) => ({
@@ -135,29 +113,26 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
-          uploadSource: 'LocalUpload',
         }));
       }
     };
     reader.onerror = () => {
-      alert('Failed to read image file from your device.');
+      alert('Không thể đọc file ảnh từ thiết bị của bạn');
     };
     reader.readAsDataURL(file);
   };
 
-  // Filtering
   const filteredPets = pets.filter((p) => {
     if (speciesFilter !== 'all') {
       const sp = speciesFilter.toLowerCase();
       const petSp = p.species.toLowerCase();
-      const match = (sp === petSp) ||
+      const match =
+        sp === petSp ||
         ((sp === 'dog' || sp === 'chó') && (petSp === 'dog' || petSp === 'chó')) ||
-        ((sp === 'cat' || sp === 'mèo') && (petSp === 'cat' || petSp === 'mèo')) ||
-        ((sp === 'other' || sp === 'khác') && (petSp === 'other' || petSp === 'khác'));
+        ((sp === 'cat' || sp === 'mèo') && (petSp === 'cat' || petSp === 'mèo'));
       if (!match) return false;
     }
     if (statusFilter !== 'all' && p.adoptionStatus !== statusFilter) return false;
-    if (shelterFilter !== 'all' && p.shelterId !== shelterFilter) return false;
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
       const matchName = p.name.toLowerCase().includes(q);
@@ -170,8 +145,6 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
 
   const handleOpenEdit = (pet: Pet) => {
     const primaryImg = pet.primaryImage || (pet.images && pet.images[0]?.imageUrl) || SAMPLE_PET_IMAGES[0];
-    const imgObj = pet.images && pet.images[0];
-
     setEditingPet(pet);
     setEditForm({
       name: pet.name,
@@ -190,46 +163,30 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       description: pet.description,
       shelterId: pet.shelterId,
       imageUrl: primaryImg,
-      fileName: imgObj?.fileName || 'existing_photo.jpg',
-      fileSize: imgObj?.fileSize,
-      mimeType: imgObj?.mimeType || 'image/jpeg',
-      uploadSource: imgObj?.uploadSource || 'LocalUpload',
     });
   };
 
   const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newPet.name.trim()) {
+      alert('Vui lòng nhập tên cho bé thú cưng');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await api.createPet({ ...newPet, requesterRole: currentUser.role }, currentUser.role);
+      await api.createPet(
+        {
+          ...newPet,
+          requesterRole: currentUser.role,
+        },
+        currentUser.role
+      );
       setOpenAddModal(false);
       onRefresh();
-      // Reset form
-      setNewPet({
-        name: '',
-        species: 'Dog',
-        breed: 'Mixed Breed',
-        ageMonths: 12,
-        gender: 'Male',
-        healthStatus: 'Healthy',
-        vaccinated: true,
-        sterilized: true,
-        adoptionStatus: 'Ready',
-        energyLevel: 'Medium',
-        goodWithKids: true,
-        goodWithPets: true,
-        requiresYard: false,
-        description: 'Recently rescued, friendly and looking for a caring forever family.',
-        shelterId: shelters[0]?.shelterId || 'SHL-01',
-        imageUrl: SAMPLE_PET_IMAGES[0],
-        fileName: 'sample_pet_1.jpg',
-        fileSize: 185000,
-        mimeType: 'image/jpeg',
-        uploadSource: 'LocalUpload',
-      });
-      alert(`Pet profile for ${newPet.name} published successfully!`);
+      alert(`Đã đăng tải bé ${newPet.name} thành công lên trạm cứu hộ!`);
     } catch (err: any) {
-      alert(err.message || 'Error publishing pet profile');
+      alert(err.message || 'Lỗi khi đăng tải hồ sơ thú cưng');
     } finally {
       setIsSubmitting(false);
     }
@@ -238,26 +195,18 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPet || !editForm) return;
+
     setIsSubmitting(true);
     try {
-      await api.updatePet(editingPet.petId, { ...editForm, requesterRole: currentUser.role }, currentUser.role);
+      await api.updatePet(editingPet.petId, editForm, currentUser.role);
       setEditingPet(null);
       setEditForm(null);
       onRefresh();
-      alert(`Pet profile for ${editForm.name} updated successfully!`);
+      alert(`Đã cập nhật thông tin bé ${editForm.name} thành công!`);
     } catch (err: any) {
-      alert(err.message || 'Error updating pet profile');
+      alert(err.message || 'Lỗi khi cập nhật thú cưng');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleQuickStatusChange = async (petId: string, newStatus: AdoptionStatus) => {
-    try {
-      await api.updatePet(petId, { adoptionStatus: newStatus, requesterRole: currentUser.role }, currentUser.role);
-      onRefresh();
-    } catch (err: any) {
-      alert(err.message || 'Failed to update adoption status');
     }
   };
 
@@ -268,9 +217,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       await api.deletePet(petToDelete.petId, currentUser.role);
       setPetToDelete(null);
       onRefresh();
-      alert(`Pet record #${petToDelete.petId} deleted successfully!`);
+      alert('Đã xóa hồ sơ thú cưng khỏi hệ thống');
     } catch (err: any) {
-      alert(err.message || 'Failed to delete pet record');
+      alert(err.message || 'Lỗi khi xóa thú cưng');
     } finally {
       setIsDeleting(false);
     }
@@ -278,142 +227,76 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      {/* Top Header & Publish Action */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
+      {/* Header & Add Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-sky-500/10 text-sky-500">
               <ShieldCheck className="w-5 h-5" />
             </span>
             <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-              Pet Management Center
+              Quản Lý Danh Sách Thú Cưng
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Publish new pet profiles with device photo upload, manage medical records, update shelter assignments, and track adoption statuses.
+            Đăng tải thú cưng mới có sẵn tại trạm kèm ảnh trực tiếp từ thư viện máy và ghi nhận lịch sử khám chữa bệnh ban đầu.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          {onOpenCsvExport && (
-            <button
-              id="btn-admin-pet-export-csv"
-              onClick={onOpenCsvExport}
-              className="px-4 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold text-xs flex items-center justify-center gap-2 transition-transform hover:scale-105"
-              title="Export pet dataset and adoption metrics to CSV"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Export CSV Report</span>
-            </button>
-          )}
-
-          <button
-            id="btn-admin-publish-pet"
-            onClick={() => setOpenAddModal(true)}
-            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-sky-500/20 flex items-center justify-center gap-2 transition-transform hover:scale-105"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Publish New Pet</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setOpenAddModal(true)}
+          className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-sky-500/25 flex items-center justify-center gap-2 transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Đăng Thú Cưng Mới</span>
+        </button>
       </div>
 
-      {/* Quick Stats Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1">
-          <div className="text-slate-400 font-semibold uppercase text-[10px]">Total Pets</div>
-          <div className="text-xl font-black text-slate-800 dark:text-white">{pets.length} animals</div>
-          <div className="text-sky-600 dark:text-sky-400 font-medium text-[11px]">3NF Standardized</div>
-        </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1">
-          <div className="text-slate-400 font-semibold uppercase text-[10px]">Ready for Adoption</div>
-          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-            {pets.filter((p) => p.adoptionStatus === 'Ready').length} pets
-          </div>
-          <div className="text-slate-400 text-[11px]">Eligible for adoption</div>
-        </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1">
-          <div className="text-slate-400 font-semibold uppercase text-[10px]">Pending / Interviewing</div>
-          <div className="text-xl font-black text-amber-500">
-            {pets.filter((p) => p.adoptionStatus === 'Pending').length} pets
-          </div>
-          <div className="text-slate-400 text-[11px]">Applications in review</div>
-        </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1">
-          <div className="text-slate-400 font-semibold uppercase text-[10px]">Adopted to Homes</div>
-          <div className="text-xl font-black text-indigo-600 dark:text-indigo-400">
-            {pets.filter((p) => p.adoptionStatus === 'Adopted').length} pets
-          </div>
-          <div className="text-indigo-500 font-medium text-[11px]">Successful adoptions</div>
-        </div>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
-        <div className="flex-1 relative">
+      {/* Search & Filters */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col md:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
+            placeholder="Tìm theo tên bé, giống loài hoặc mã Pet..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by name, PET-ID, breed, or species..."
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Species */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <select
             value={speciesFilter}
             onChange={(e) => setSpeciesFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 font-medium"
+            className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300"
           >
-            <option value="all">Species: All</option>
-            <option value="Dog">Dogs</option>
-            <option value="Cat">Cats</option>
-            <option value="Other">Other Animals</option>
+            <option value="all">Tất cả loài</option>
+            <option value="Chó">Chó</option>
+            <option value="Mèo">Mèo</option>
           </select>
 
-          {/* Status */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 font-medium"
+            className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300"
           >
-            <option value="all">Status: All</option>
-            <option value="Ready">Ready for Adoption</option>
-            <option value="Pending">Pending Review</option>
-            <option value="Adopted">Adopted</option>
-            <option value="Fostered">Fostered</option>
+            <option value="all">Tất cả trạng thái</option>
+            <option value="Ready">Sẵn sàng nhận nuôi (Ready)</option>
+            <option value="Pending">Đang xử lý đơn (Pending)</option>
+            <option value="Adopted">Đã có chủ (Adopted)</option>
           </select>
 
-          {/* Shelter */}
-          <select
-            value={shelterFilter}
-            onChange={(e) => setShelterFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 font-medium max-w-[160px] truncate"
-          >
-            <option value="all">Shelter: All</option>
-            {shelters.map((s) => (
-              <option key={s.shelterId} value={s.shelterId}>{s.shelterName}</option>
-            ))}
-          </select>
-
-          {/* View Mode Toggle */}
           <div className="flex border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
             <button
-              type="button"
               onClick={() => setViewMode('table')}
-              className={`p-2 transition-colors ${viewMode === 'table' ? 'bg-sky-500 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
-              title="Table View"
+              className={`p-2 ${viewMode === 'table' ? 'bg-sky-500 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
             >
               <List className="w-4 h-4" />
             </button>
             <button
-              type="button"
               onClick={() => setViewMode('grid')}
-              className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-sky-500 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
-              title="Grid View"
+              className={`p-2 ${viewMode === 'grid' ? 'bg-sky-500 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -428,238 +311,144 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-400 uppercase font-semibold text-[10px] border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-4 py-3">Pet & ID</th>
-                  <th className="px-4 py-3">Species / Breed</th>
-                  <th className="px-4 py-3">Age & Gender</th>
-                  <th className="px-4 py-3">Assigned Shelter</th>
-                  <th className="px-4 py-3">Health Status</th>
-                  <th className="px-4 py-3">Adoption Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3">Thú cưng</th>
+                  <th className="px-4 py-3">Loài / Giống</th>
+                  <th className="px-4 py-3">Tuổi & Giới tính</th>
+                  <th className="px-4 py-3">Tình trạng sức khỏe</th>
+                  <th className="px-4 py-3">Trạng thái nhận nuôi</th>
+                  <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                {filteredPets.map((p) => {
-                  const shelter = shelters.find((s) => s.shelterId === p.shelterId);
-                  const img = p.primaryImage || (p.images && p.images[0]?.imageUrl) || SAMPLE_PET_IMAGES[0];
-                  const imgObj = p.images && p.images[0];
-
-                  return (
-                    <tr key={p.petId} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors">
-                      {/* Name & Photo */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={img}
-                            alt={p.name}
-                            className="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
-                          />
-                          <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                              <span>{p.name}</span>
-                              <span className="font-mono text-[10px] text-sky-600 dark:text-sky-400 font-bold px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950 border border-sky-200 dark:border-sky-800">
-                                {p.petId}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400">
-                              {p.vaccinated && (
-                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">✓ Vaccinated</span>
-                              )}
-                              {p.sterilized && (
-                                <span className="text-indigo-600 dark:text-indigo-400 font-medium ml-1">✓ Neutered</span>
-                              )}
-                              {imgObj?.fileName && (
-                                <span className="text-slate-400 ml-1 truncate max-w-[100px]" title={imgObj.fileName}>
-                                  📁 {imgObj.fileName}
+                {filteredPets.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                      Chưa có thú cưng nào. Hãy nhấn "Đăng Thú Cưng Mới" để thêm bé vào trạm!
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPets.map((p) => {
+                    const img = p.imageUrl || p.primaryImage || (p.images && p.images[0]?.imageUrl) || SAMPLE_PET_IMAGES[0];
+                    return (
+                      <tr key={p.petId} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <img src={img} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" />
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                <span>{p.name}</span>
+                                <span className="font-mono text-[10px] text-sky-600 dark:text-sky-400 font-bold px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950 border border-sky-200 dark:border-sky-800">
+                                  {p.petId}
                                 </span>
-                              )}
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                {p.vaccinated ? '✓ Tiêm phòng' : 'Chưa tiêm'} • {p.sterilized ? '✓ Triệt sản' : 'Chưa triệt sản'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Species & Breed */}
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                        <div className="font-semibold">{p.species === 'Chó' ? 'Dog' : p.species === 'Mèo' ? 'Cat' : p.species}</div>
-                        <div className="text-slate-400 text-[11px]">{p.breed}</div>
-                      </td>
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                          <div className="font-semibold">{p.species}</div>
+                          <div className="text-slate-400 text-[11px]">{p.breed}</div>
+                        </td>
 
-                      {/* Age & Gender */}
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                        <div>
-                          {p.ageMonths >= 12
-                            ? `${(p.ageMonths / 12).toFixed(1).replace('.0', '')} yrs`
-                            : `${p.ageMonths} mos`}
-                        </div>
-                        <span
-                          className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
-                            p.gender === 'Đực' || p.gender === 'Male'
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                              : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                          }`}
-                        >
-                          {p.gender === 'Đực' ? 'Male' : p.gender === 'Cái' ? 'Female' : p.gender}
-                        </span>
-                      </td>
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                          <div>{p.ageMonths} tháng</div>
+                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${p.gender === 'Đực' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'}`}>
+                            {p.gender}
+                          </span>
+                        </td>
 
-                      {/* Shelter */}
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                        <div className="font-medium truncate max-w-[140px]" title={shelter?.shelterName}>
-                          {shelter?.shelterName || p.shelterId}
-                        </div>
-                        <div className="text-[10px] text-slate-400">{shelter?.address?.split(',')[0]}</div>
-                      </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            {p.healthStatus}
+                          </span>
+                        </td>
 
-                      {/* Health Status */}
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
-                            p.healthStatus === 'Healthy' || p.healthStatus === 'Bình thường'
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                              : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                          }`}
-                        >
-                          {p.healthStatus === 'Bình thường' ? 'Healthy' : p.healthStatus}
-                        </span>
-                      </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-bold ${p.adoptionStatus === 'Adopted' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : p.adoptionStatus === 'Pending' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'}`}>
+                            {p.adoptionStatus === 'Adopted' ? 'Đã nhận nuôi' : p.adoptionStatus === 'Pending' ? 'Đang duyệt đơn' : 'Sẵn sàng nhận nuôi'}
+                          </span>
+                        </td>
 
-                      {/* Adoption Status Selector */}
-                      <td className="px-4 py-3">
-                        <select
-                          value={p.adoptionStatus}
-                          onChange={(e) => handleQuickStatusChange(p.petId, e.target.value as AdoptionStatus)}
-                          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border ${
-                            p.adoptionStatus === 'Ready'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
-                              : p.adoptionStatus === 'Pending'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
-                              : p.adoptionStatus === 'Adopted'
-                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800'
-                              : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                          }`}
-                        >
-                          <option value="Ready">Ready for Adoption</option>
-                          <option value="Pending">Pending Review</option>
-                          <option value="Adopted">Adopted</option>
-                          <option value="Fostered">Fostered</option>
-                        </select>
-                      </td>
-
-                      {/* Admin Actions */}
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {onOpenQrCode && (
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => onOpenQrCode(p)}
-                              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400"
-                              title="Generate QR Code Standee"
+                              onClick={() => handleOpenEdit(p)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-sky-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                              title="Sửa thông tin"
                             >
-                              <QrCode className="w-3.5 h-3.5" />
+                              <Edit className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleOpenEdit(p)}
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-sky-950/50 text-sky-600 dark:text-sky-400"
-                            title="Edit pet profile"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => onOpenMedicalModal(p)}
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400"
-                            title="Add medical record & vaccination"
-                          >
-                            <Stethoscope className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setPetToDelete(p)}
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400"
-                            title="Delete pet profile"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                            <button
+                              onClick={() => onOpenMedicalModal(p)}
+                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                              title="Xem/Thêm Bệnh Án Y Tế"
+                            >
+                              <Stethoscope className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setPetToDelete(p)}
+                              className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                              title="Xóa bé"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </div>
       ) : (
         /* GRID VIEW */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPets.map((p) => {
-            const shelter = shelters.find((s) => s.shelterId === p.shelterId);
-            const img = p.primaryImage || (p.images && p.images[0]?.imageUrl) || SAMPLE_PET_IMAGES[0];
-
+            const img = p.imageUrl || p.primaryImage || (p.images && p.images[0]?.imageUrl) || SAMPLE_PET_IMAGES[0];
             return (
-              <div
-                key={p.petId}
-                className="bg-white dark:bg-slate-800 rounded-3xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-3"
-              >
-                <div className="relative rounded-2xl overflow-hidden aspect-video bg-slate-100 dark:bg-slate-900">
-                  <img src={img} alt={p.name} className="w-full h-full object-cover" />
-                  <span className="absolute top-2 left-2 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-xs">
-                    {p.petId}
-                  </span>
-                  <span
-                    className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs ${
-                      p.adoptionStatus === 'Ready'
-                        ? 'bg-emerald-500/90 text-white'
-                        : p.adoptionStatus === 'Pending'
-                        ? 'bg-amber-500/90 text-white'
-                        : 'bg-indigo-500/90 text-white'
-                    }`}
-                  >
-                    {p.adoptionStatus}
-                  </span>
-                </div>
-
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-slate-800 dark:text-white text-sm">{p.name}</h3>
-                    <span className="text-slate-400">
-                      {p.gender === 'Đực' ? 'Male' : p.gender === 'Cái' ? 'Female' : p.gender} • {p.species === 'Chó' ? 'Dog' : p.species === 'Mèo' ? 'Cat' : p.species}
+              <div key={p.petId} className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="relative aspect-4/3 bg-slate-100 dark:bg-slate-900">
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <span className="absolute top-3 left-3 px-2 py-0.5 rounded-lg bg-slate-900/70 text-white text-[11px] font-bold">
+                      {p.species} • {p.breed}
+                    </span>
+                    <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-lg bg-emerald-500 text-white text-[11px] font-bold">
+                      {p.adoptionStatus}
                     </span>
                   </div>
-                  <div className="text-slate-500 dark:text-slate-400 text-[11px] truncate">
-                    {p.breed} • {p.ageMonths >= 12 ? `${(p.ageMonths / 12).toFixed(1).replace('.0', '')} yrs old` : `${p.ageMonths} mos old`}
-                  </div>
-                  <div className="text-[11px] text-slate-400 flex items-center gap-1 truncate">
-                    <Building2 className="w-3 h-3 text-sky-500" />
-                    <span>{shelter?.shelterName || p.shelterId}</span>
+                  <div className="p-4 space-y-2">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center justify-between">
+                      <span>{p.name}</span>
+                      <span className="text-xs text-slate-400">{p.ageMonths} tháng</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{p.description}</p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
-                  {onOpenQrCode && (
-                    <button
-                      onClick={() => onOpenQrCode(p)}
-                      className="p-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 font-semibold text-xs flex items-center justify-center"
-                      title="Generate QR Code Standee"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                <div className="p-4 pt-0 flex gap-2">
                   <button
                     onClick={() => handleOpenEdit(p)}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-sky-50 hover:text-sky-600 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center gap-1"
+                    className="flex-1 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs"
                   >
-                    <Edit className="w-3.5 h-3.5" /> Edit
+                    Sửa
                   </button>
                   <button
                     onClick={() => onOpenMedicalModal(p)}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1"
+                    className="flex-1 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-1"
                   >
-                    <Stethoscope className="w-3.5 h-3.5" /> Medical
+                    <Stethoscope className="w-3.5 h-3.5" /> Bệnh án
                   </button>
                   <button
                     onClick={() => setPetToDelete(p)}
-                    className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                    title="Delete"
+                    className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -668,10 +457,10 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
         </div>
       )}
 
-      {/* ADD NEW PET MODAL */}
+      {/* ADD NEW PET MODAL (Includes Direct Photo Upload & Initial Medical Record) */}
       {openAddModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-sky-500 text-white">
@@ -679,10 +468,10 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                    Publish New Pet (PETS & PET_IMAGES Tables)
+                    Đăng Tải Thú Cưng Mới Cần Tìm Chủ
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Publisher Role: <strong className="text-sky-600 dark:text-sky-400">{currentUser.fullName}</strong>
+                    Người đăng: <strong className="text-sky-600 dark:text-sky-400">{currentUser.fullName}</strong> (AdminStaff)
                   </p>
                 </div>
               </div>
@@ -691,46 +480,47 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSaveAdd} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveAdd} className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
+              {/* Basic Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Pet Name (*):</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tên bé thú cưng (*):</label>
                   <input
                     type="text"
+                    required
                     value={newPet.name}
                     onChange={(e) => setNewPet({ ...newPet, name: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                    placeholder="e.g. Milo, Bella, Buster..."
-                    required
+                    placeholder="Ví dụ: Bơ, Miu Miu, Corgi..."
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Species (*):</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Loài (*):</label>
                   <select
                     value={newPet.species}
                     onChange={(e) => setNewPet({ ...newPet, species: e.target.value as PetSpecies })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   >
-                    <option value="Dog">Dog</option>
-                    <option value="Cat">Cat</option>
-                    <option value="Other">Other</option>
+                    <option value="Chó">Chó</option>
+                    <option value="Mèo">Mèo</option>
+                    <option value="Khác">Khác</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Breed:</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Giống loài:</label>
                   <input
                     type="text"
                     value={newPet.breed}
                     onChange={(e) => setNewPet({ ...newPet, breed: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                    placeholder="e.g. Golden Mix, Corgi..."
+                    placeholder="Cún cỏ lai, Golden, Mèo mướp..."
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Age (Months):</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tuổi (tháng):</label>
                   <input
                     type="number"
                     min="1"
@@ -741,59 +531,30 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gender:</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Giới tính:</label>
                   <select
                     value={newPet.gender}
                     onChange={(e) => setNewPet({ ...newPet, gender: e.target.value as any })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
+                    <option value="Đực">Đực</option>
+                    <option value="Cái">Cái</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Adoption Status:</label>
-                  <select
-                    value={newPet.adoptionStatus}
-                    onChange={(e) => setNewPet({ ...newPet, adoptionStatus: e.target.value as AdoptionStatus })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  >
-                    <option value="Ready">Ready for Adoption</option>
-                    <option value="Pending">Pending Review</option>
-                    <option value="Adopted">Adopted</option>
-                    <option value="Fostered">Fostered</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Assigned Shelter (*):</label>
-                  <select
-                    value={newPet.shelterId}
-                    onChange={(e) => setNewPet({ ...newPet, shelterId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  >
-                    {shelters.map((s) => (
-                      <option key={s.shelterId} value={s.shelterId}>{s.shelterName}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* LOCAL PHOTO UPLOAD FROM COMPUTER */}
+              {/* DIRECT PHOTO UPLOAD FROM DEVICE */}
               <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <Upload className="w-4 h-4 text-sky-500" />
-                    <span>Upload Pet Photo from Computer:</span>
+                    <span>Đăng ảnh trực tiếp từ thiết bị / thư viện ảnh (*):</span>
                   </label>
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                    Device File Picker Enabled
+                    File Picker Active
                   </span>
                 </div>
 
-                {/* Hidden File Input */}
                 <input
                   type="file"
                   ref={addFileInputRef}
@@ -801,20 +562,13 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     const file = e.target.files?.[0];
                     if (file) handleFileUpload(file, 'add');
                   }}
-                  accept="image/png, image/jpeg, image/webp, image/gif"
+                  accept="image/*"
                   className="hidden"
                 />
 
-                {/* Upload Dropzone / Preview Area */}
                 <div
                   onClick={() => addFileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file) handleFileUpload(file, 'add');
-                  }}
-                  className="border-2 border-dashed border-sky-300 dark:border-sky-700 hover:border-sky-500 dark:hover:border-sky-500 rounded-2xl p-4 bg-white dark:bg-slate-800 text-center cursor-pointer transition-colors shadow-xs"
+                  className="border-2 border-dashed border-sky-300 dark:border-sky-700 hover:border-sky-500 rounded-2xl p-4 bg-white dark:bg-slate-800 text-center cursor-pointer transition-colors shadow-xs"
                 >
                   {newPet.imageUrl ? (
                     <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
@@ -823,84 +577,97 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                         alt="Preview"
                         className="w-24 h-24 rounded-2xl object-cover ring-2 ring-sky-500 shadow-md shrink-0"
                       />
-                      <div className="text-left space-y-1.5 flex-1 min-w-0">
+                      <div className="text-left space-y-1 flex-1 min-w-0">
                         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                          <Check className="w-3 h-3" /> Image Selected
+                          <Check className="w-3 h-3" /> Ảnh đã được chọn
                         </div>
                         <div className="font-semibold text-slate-800 dark:text-white text-xs truncate max-w-xs">
-                          {newPet.fileName || 'selected_pet_photo.png'}
+                          {newPet.fileName || 'pet_photo.jpg'}
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono">
-                          {newPet.fileSize ? `Size: ${formatBytes(newPet.fileSize)} • ` : ''}
-                          {newPet.mimeType || 'image/jpeg'} • Stored as MySQL LONGTEXT
-                        </div>
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addFileInputRef.current?.click();
-                            }}
-                            className="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold flex items-center gap-1 transition-colors"
-                          >
-                            <Upload className="w-3 h-3" /> Choose Another Photo
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setNewPet((prev) => ({
-                                ...prev,
-                                imageUrl: '',
-                                fileName: undefined,
-                                fileSize: undefined,
-                              }));
-                            }}
-                            className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            Clear
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addFileInputRef.current?.click();
+                          }}
+                          className="mt-1 px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold flex items-center gap-1 transition-colors"
+                        >
+                          <Upload className="w-3 h-3" /> Chọn ảnh khác từ máy
+                        </button>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-1.5 py-3">
-                      <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-300 flex items-center justify-center mx-auto">
-                        <Upload className="w-6 h-6" />
+                      <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto">
+                        <Upload className="w-5 h-5" />
                       </div>
                       <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">
-                        Click to choose a photo from your computer or drag and drop here
+                        Bấm vào đây để chọn ảnh từ thư viện máy tính / điện thoại
                       </div>
-                      <p className="text-[11px] text-slate-400">
-                        Supports PNG, JPG, JPEG, WEBP, GIF files (converted and saved directly to the database)
-                      </p>
+                      <p className="text-[11px] text-slate-400">Hỗ trợ JPG, PNG, WEBP</p>
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* Quick Sample Presets Alternative */}
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-[10px] text-slate-400 shrink-0">Or pick a sample photo:</span>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                    {SAMPLE_PET_IMAGES.map((imgUrl, i) => (
-                      <img
-                        key={i}
-                        src={imgUrl}
-                        alt=""
-                        onClick={() =>
-                          setNewPet((prev) => ({
-                            ...prev,
-                            imageUrl: imgUrl,
-                            fileName: `sample_pet_${i + 1}.jpg`,
-                            fileSize: 185000,
-                            uploadSource: 'ExternalURL',
-                          }))
-                        }
-                        className={`w-8 h-8 rounded-lg object-cover cursor-pointer transition-transform hover:scale-110 shrink-0 ${
-                          newPet.imageUrl === imgUrl ? 'ring-2 ring-sky-500 scale-105' : 'opacity-60'
-                        }`}
-                      />
-                    ))}
+              {/* INITIAL MEDICAL RECORD SECTION */}
+              <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Stethoscope className="w-4 h-4 text-emerald-500" />
+                  <span>Hồ sơ lịch sử khám chữa bệnh ban đầu (Tùy chọn):</span>
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Chẩn đoán bệnh / Thể trạng:
+                    </label>
+                    <input
+                      type="text"
+                      value={newPet.initialDiagnosis}
+                      onChange={(e) => setNewPet({ ...newPet, initialDiagnosis: e.target.value })}
+                      placeholder="Ví dụ: Khám tổng quát & tẩy giun..."
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Phác đồ điều trị / Thực hiện:
+                    </label>
+                    <input
+                      type="text"
+                      value={newPet.initialTreatment}
+                      onChange={(e) => setNewPet({ ...newPet, initialTreatment: e.target.value })}
+                      placeholder="Ví dụ: Đã tiêm mũi 1 vắc-xin 7 bệnh..."
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Bác sĩ thú y phụ trách:
+                    </label>
+                    <input
+                      type="text"
+                      value={newPet.vetName}
+                      onChange={(e) => setNewPet({ ...newPet, vetName: e.target.value })}
+                      placeholder="Bác sĩ thú y PawFund"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Thuốc đã dùng:
+                    </label>
+                    <input
+                      type="text"
+                      value={newPet.medications}
+                      onChange={(e) => setNewPet({ ...newPet, medications: e.target.value })}
+                      placeholder="Ví dụ: Canigen, Drontal..."
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                    />
                   </div>
                 </div>
               </div>
@@ -914,7 +681,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, vaccinated: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Vaccinated</span>
+                  <span>Đã tiêm phòng</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-medium cursor-pointer">
                   <input
@@ -923,7 +690,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, sterilized: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Neutered / Spayed</span>
+                  <span>Đã triệt sản</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-medium cursor-pointer">
                   <input
@@ -932,7 +699,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, goodWithKids: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Good with Kids</span>
+                  <span>Thân thiện trẻ nhỏ</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-medium cursor-pointer">
                   <input
@@ -941,18 +708,20 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, requiresYard: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Requires Yard</span>
+                  <span>Cần sân vườn</span>
                 </label>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Rescue Story & Description:</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Mô tả tính cách & hoàn cảnh tiếp nhận:
+                </label>
                 <textarea
                   rows={2}
                   value={newPet.description}
                   onChange={(e) => setNewPet({ ...newPet, description: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  placeholder="Tell adopters about this pet's rescue background and personality..."
+                  placeholder="Chia sẻ tính cách, thói quen ăn uống và điểm đáng yêu của bé..."
                 />
               </div>
 
@@ -962,15 +731,14 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   onClick={() => setOpenAddModal(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
-                  id="btn-confirm-publish-pet"
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold shadow-md disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Publishing...' : 'Publish Pet Profile (Save to Database)'}
+                  {isSubmitting ? 'Đang lưu vào Database...' : 'Đăng Tải Thú Cưng (Lưu Vào MySQL)'}
                 </button>
               </div>
             </form>
@@ -981,28 +749,20 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       {/* EDIT PET MODAL */}
       {editingPet && editForm && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-sky-500 text-white">
-                  <Edit className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                    Edit Pet Profile: {editingPet.name} ({editingPet.petId})
-                  </h3>
-                  <p className="text-xs text-slate-400">Update relational records in PETS and PET_IMAGES tables</p>
-                </div>
-              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                Chỉnh Sửa Thông Tin Bé {editingPet.name}
+              </h3>
               <button onClick={() => setEditingPet(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Pet Name:</label>
+                  <label className="block font-bold mb-1">Tên bé:</label>
                   <input
                     type="text"
                     value={editForm.name}
@@ -1012,215 +772,21 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Species:</label>
-                  <select
-                    value={editForm.species}
-                    onChange={(e) => setEditForm({ ...editForm, species: e.target.value as PetSpecies })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  >
-                    <option value="Dog">Dog</option>
-                    <option value="Cat">Cat</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Breed:</label>
-                  <input
-                    type="text"
-                    value={editForm.breed}
-                    onChange={(e) => setEditForm({ ...editForm, breed: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Age (Months):</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editForm.ageMonths}
-                    onChange={(e) => setEditForm({ ...editForm, ageMonths: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gender:</label>
-                  <select
-                    value={editForm.gender}
-                    onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Adoption Status:</label>
+                  <label className="block font-bold mb-1">Trạng thái nhận nuôi:</label>
                   <select
                     value={editForm.adoptionStatus}
-                    onChange={(e) => setEditForm({ ...editForm, adoptionStatus: e.target.value as AdoptionStatus })}
+                    onChange={(e) => setEditForm({ ...editForm, adoptionStatus: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   >
-                    <option value="Ready">Ready for Adoption</option>
-                    <option value="Pending">Pending Review</option>
-                    <option value="Adopted">Adopted</option>
-                    <option value="Fostered">Fostered</option>
+                    <option value="Ready">Sẵn sàng nhận nuôi (Ready)</option>
+                    <option value="Pending">Đang xử lý đơn (Pending)</option>
+                    <option value="Adopted">Đã nhận nuôi (Adopted)</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Assigned Shelter:</label>
-                  <select
-                    value={editForm.shelterId}
-                    onChange={(e) => setEditForm({ ...editForm, shelterId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  >
-                    {shelters.map((s) => (
-                      <option key={s.shelterId} value={s.shelterId}>{s.shelterName}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* LOCAL PHOTO UPLOAD IN EDIT MODAL */}
-              <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Upload className="w-4 h-4 text-sky-500" />
-                    <span>Update Photo from Computer:</span>
-                  </label>
-                  <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold bg-sky-50 dark:bg-sky-950 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
-                    Device File Upload
-                  </span>
-                </div>
-
-                <input
-                  type="file"
-                  ref={editFileInputRef}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file, 'edit');
-                  }}
-                  accept="image/png, image/jpeg, image/webp, image/gif"
-                  className="hidden"
-                />
-
-                <div
-                  onClick={() => editFileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file) handleFileUpload(file, 'edit');
-                  }}
-                  className="border-2 border-dashed border-sky-300 dark:border-sky-700 hover:border-sky-500 rounded-2xl p-4 bg-white dark:bg-slate-800 text-center cursor-pointer transition-colors"
-                >
-                  <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
-                    <img
-                      src={editForm.imageUrl}
-                      alt="Current photo"
-                      className="w-24 h-24 rounded-2xl object-cover ring-2 ring-sky-500 shadow-md shrink-0"
-                    />
-                    <div className="text-left space-y-1 flex-1 min-w-0">
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                        <Check className="w-3 h-3" /> Photo Attached
-                      </div>
-                      <div className="font-semibold text-slate-800 dark:text-white text-xs truncate max-w-xs">
-                        {editForm.fileName || 'current_pet_photo.png'}
-                      </div>
-                      {editForm.fileSize && (
-                        <div className="text-[11px] text-slate-400 font-mono">
-                          Size: {formatBytes(editForm.fileSize)} • {editForm.mimeType || 'image/jpeg'}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            editFileInputRef.current?.click();
-                          }}
-                          className="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold flex items-center gap-1"
-                        >
-                          <Upload className="w-3 h-3" /> Select New Photo from Computer
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sample thumbnails row */}
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-[10px] text-slate-400 shrink-0">Preset library:</span>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                    {SAMPLE_PET_IMAGES.map((imgUrl, i) => (
-                      <img
-                        key={i}
-                        src={imgUrl}
-                        alt=""
-                        onClick={() =>
-                          setEditForm((prev: any) => ({
-                            ...prev,
-                            imageUrl: imgUrl,
-                            fileName: `preset_pet_${i + 1}.jpg`,
-                            uploadSource: 'ExternalURL',
-                          }))
-                        }
-                        className={`w-8 h-8 rounded-lg object-cover cursor-pointer transition-transform hover:scale-110 shrink-0 ${
-                          editForm.imageUrl === imgUrl ? 'ring-2 ring-sky-500 scale-105' : 'opacity-60'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <label className="flex items-center gap-1.5 font-medium cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editForm.vaccinated}
-                    onChange={(e) => setEditForm({ ...editForm, vaccinated: e.target.checked })}
-                    className="rounded text-sky-600"
-                  />
-                  <span>Vaccinated</span>
-                </label>
-                <label className="flex items-center gap-1.5 font-medium cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editForm.sterilized}
-                    onChange={(e) => setEditForm({ ...editForm, sterilized: e.target.checked })}
-                    className="rounded text-sky-600"
-                  />
-                  <span>Neutered / Spayed</span>
-                </label>
-                <label className="flex items-center gap-1.5 font-medium cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editForm.goodWithKids}
-                    onChange={(e) => setEditForm({ ...editForm, goodWithKids: e.target.checked })}
-                    className="rounded text-sky-600"
-                  />
-                  <span>Good with Kids</span>
-                </label>
-                <label className="flex items-center gap-1.5 font-medium cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editForm.requiresYard}
-                    onChange={(e) => setEditForm({ ...editForm, requiresYard: e.target.checked })}
-                    className="rounded text-sky-600"
-                  />
-                  <span>Requires Yard</span>
-                </label>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Rescue Story & Notes:</label>
+                <label className="block font-bold mb-1">Mô tả tính cách:</label>
                 <textarea
                   rows={2}
                   value={editForm.description}
@@ -1235,14 +801,14 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   onClick={() => setEditingPet(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold shadow-md disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold"
                 >
-                  {isSubmitting ? 'Saving...' : 'Save Changes (Update)'}
+                  {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}
                 </button>
               </div>
             </form>
@@ -1253,35 +819,31 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       {/* DELETE CONFIRMATION MODAL */}
       {petToDelete && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95 text-xs text-center">
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-6 h-6" />
             </div>
-
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                Confirm Deletion of Pet Record?
-              </h3>
-              <p className="text-slate-500 dark:text-slate-400">
-                Are you sure you want to delete the record for <strong className="text-slate-800 dark:text-slate-200">{petToDelete.name} ({petToDelete.petId})</strong> from the database?
+            <div>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">Xác nhận xóa thú cưng</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Bạn có chắc chắn muốn xóa bé <strong>{petToDelete.name}</strong> (#{petToDelete.petId}) khỏi cơ sở dữ liệu không?
               </p>
             </div>
-
-            <div className="flex justify-center gap-2 pt-2">
+            <div className="flex gap-2 justify-center pt-2">
               <button
                 type="button"
                 onClick={() => setPetToDelete(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold"
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold"
               >
-                Cancel
+                Hủy bỏ
               </button>
               <button
                 type="button"
-                onClick={handleDeletePet}
                 disabled={isDeleting}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md disabled:opacity-50"
+                onClick={handleDeletePet}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
               >
-                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                {isDeleting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
               </button>
             </div>
           </div>

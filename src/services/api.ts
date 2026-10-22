@@ -5,12 +5,10 @@ import {
   AdoptionApplication,
   CareLog,
   Donation,
-  MatchCriteria,
   PetMedicalRecord,
-  TransactionExecutionResult,
-  ShelterStatistics,
-  HealthReminder,
-  HealthReminderSummary,
+  InAppNotification,
+  AiMatchRequest,
+  AiMatchResult,
 } from '../types';
 
 export const api = {
@@ -20,21 +18,40 @@ export const api = {
     return res.json();
   },
 
-  async login(credentials: { email?: string; username?: string; password?: string } | string): Promise<{ user: User; token: string }> {
-    const payload = typeof credentials === 'string' ? { email: credentials } : credentials;
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
+  async updateUserAvatar(userId: string, avatarUrl: string): Promise<{ success: boolean; user: User }> {
+    const res = await fetch(`/api/users/${userId}/avatar`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ avatarUrl }),
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Đăng nhập thất bại');
+      throw new Error(err.error || 'Failed to update avatar');
     }
     return res.json();
   },
 
-  async register(data: { fullName: string; email: string; phone?: string; address?: string }): Promise<{ user: User; token: string }> {
+  async login(credentials: { email?: string; username?: string; password?: string }): Promise<{ user: User; token: string }> {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Login failed. Please check your credentials.');
+    }
+    return res.json();
+  },
+
+  async register(data: {
+    fullName: string;
+    email: string;
+    password: string;
+    confirmPassword?: string;
+    phone?: string;
+    address?: string;
+  }): Promise<{ user: User; token: string }> {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,7 +59,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Đăng ký thất bại');
+      throw new Error(err.error || 'Registration failed');
     }
     return res.json();
   },
@@ -51,26 +68,19 @@ export const api = {
   async getPets(params?: {
     species?: string;
     status?: string;
-    shelterId?: string;
     search?: string;
-    vaccinated?: boolean;
-    sterilized?: boolean;
-    requiresYard?: boolean;
     goodWithKids?: boolean;
+    requiresYard?: boolean;
   }): Promise<Pet[]> {
     const query = new URLSearchParams();
     if (params?.species) query.append('species', params.species);
     if (params?.status) query.append('status', params.status);
-    if (params?.shelterId) query.append('shelterId', params.shelterId);
     if (params?.search) query.append('search', params.search);
-    if (params?.vaccinated) query.append('vaccinated', 'true');
-    if (params?.sterilized) query.append('sterilized', 'true');
-    if (params?.requiresYard !== undefined) query.append('requiresYard', String(params.requiresYard));
     if (params?.goodWithKids) query.append('goodWithKids', 'true');
+    if (params?.requiresYard !== undefined) query.append('requiresYard', String(params.requiresYard));
 
     const res = await fetch(`/api/pets?${query.toString()}`);
-    const data = await res.json();
-    return Array.isArray(data) ? data : (data.data || []);
+    return res.json();
   },
 
   async getPetById(id: string): Promise<Pet> {
@@ -105,64 +115,61 @@ export const api = {
           });
           if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.error || 'Failed to upload photo');
+            throw new Error(err.error || 'Image upload failed');
           }
           resolve(await res.json());
         } catch (e) {
           reject(e);
         }
       };
-      reader.onerror = () => reject(new Error('Failed to read file from your device'));
+      reader.onerror = () => reject(new Error('Unable to read selected image file from your device'));
       reader.readAsDataURL(file);
     });
   },
 
-  async createPet(data: Partial<Pet> & { imageUrl?: string; fileName?: string; fileSize?: number; mimeType?: string; uploadSource?: string; requesterRole?: string }, requesterRole?: string): Promise<Pet> {
-    const role = requesterRole || data.requesterRole || 'Admin';
+  async createPet(data: any, requesterRole: string = 'Admin'): Promise<Pet> {
     const res = await fetch('/api/pets', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-role': role,
+        'x-user-role': requesterRole,
       },
       body: JSON.stringify(data),
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Failed to create pet profile');
+      throw new Error(err.error || 'Failed to create pet record');
     }
     return res.json();
   },
 
-  async updatePet(id: string, data: Partial<Pet> & { imageUrl?: string; fileName?: string; fileSize?: number; mimeType?: string; uploadSource?: string; requesterRole?: string }, requesterRole?: string): Promise<Pet> {
-    const role = requesterRole || data.requesterRole || 'Admin';
+  async updatePet(id: string, data: Partial<Pet>, requesterRole: string = 'Admin'): Promise<Pet> {
     const res = await fetch(`/api/pets/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-role': role,
+        'x-user-role': requesterRole,
       },
       body: JSON.stringify(data),
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Failed to update pet profile');
+      throw new Error(err.error || 'Failed to update pet record');
     }
     return res.json();
   },
 
-  async deletePet(id: string, requesterRole?: string): Promise<{ success: boolean; message: string; deletedPetId: string }> {
-    const role = requesterRole || 'Admin';
+  async deletePet(id: string, requesterRole: string = 'Admin'): Promise<{ success: boolean; message: string; deletedPetId: string }> {
     const res = await fetch(`/api/pets/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-role': role,
+        'x-user-role': requesterRole,
       },
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Failed to delete pet profile');
+      throw new Error(err.error || 'Failed to delete pet record');
     }
     return res.json();
   },
@@ -175,69 +182,21 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Thêm hồ sơ y tế thất bại');
+      throw new Error(err.error || 'Failed to add medical record');
     }
     return res.json();
   },
 
-  // HEALTH REMINDERS
-  async getHealthReminders(params?: {
-    petId?: string;
-    shelterId?: string;
-    userId?: string;
-    urgency?: string;
-    category?: string;
-    daysWindow?: number;
-    referenceDate?: string;
-  }): Promise<{ reminders: HealthReminder[]; summary: HealthReminderSummary; referenceDate: string }> {
-    const query = new URLSearchParams();
-    if (params?.petId) query.append('petId', params.petId);
-    if (params?.shelterId) query.append('shelterId', params.shelterId);
-    if (params?.userId) query.append('userId', params.userId);
-    if (params?.urgency) query.append('urgency', params.urgency);
-    if (params?.category) query.append('category', params.category);
-    if (params?.daysWindow !== undefined) query.append('daysWindow', String(params.daysWindow));
-    if (params?.referenceDate) query.append('referenceDate', params.referenceDate);
-
-    const res = await fetch(`/api/health-reminders?${query.toString()}`);
-    if (!res.ok) throw new Error('Không thể tải danh sách nhắc nhở y tế');
-    return res.json();
-  },
-
-  async completeHealthReminder(data: {
-    petId: string;
-    recordId: string;
-    nextFollowUp?: string;
-    newDiagnosis?: string;
-    newTreatment?: string;
-    vetName?: string;
-    medications?: string;
-  }): Promise<{ success: boolean; message: string; pet: Pet; newRecord?: PetMedicalRecord }> {
-    const res = await fetch('/api/health-reminders/complete', {
+  // AI MATCHMAKER (Gemini API)
+  async matchPets(request: AiMatchRequest): Promise<{ matches: AiMatchResult[]; poweredBy?: string }> {
+    const res = await fetch('/api/match-pet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(request),
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Cập nhật lịch tái khám thất bại');
-    }
-    return res.json();
-  },
-
-  async sendHealthReminderNotification(data: {
-    reminderId?: string;
-    petId: string;
-    customNote?: string;
-  }): Promise<{ success: boolean; message: string; emailLog: any }> {
-    const res = await fetch('/api/health-reminders/send-notification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Gửi thông báo nhắc nhở thất bại');
+      throw new Error(err.error || 'Error while matching pets with AI');
     }
     return res.json();
   },
@@ -249,13 +208,8 @@ export const api = {
   },
 
   // APPLICATIONS
-  async getApplications(params?: { userId?: string; shelterId?: string; status?: string }): Promise<AdoptionApplication[]> {
-    const query = new URLSearchParams();
-    if (params?.userId) query.append('userId', params.userId);
-    if (params?.shelterId) query.append('shelterId', params.shelterId);
-    if (params?.status) query.append('status', params.status);
-
-    const res = await fetch(`/api/applications?${query.toString()}`);
+  async getApplications(): Promise<AdoptionApplication[]> {
+    const res = await fetch('/api/applications');
     return res.json();
   },
 
@@ -267,35 +221,32 @@ export const api = {
     });
     const result = await res.json();
     if (!res.ok) {
-      throw new Error(result.error || 'Nộp đơn thất bại');
+      throw new Error(result.error || 'Failed to submit adoption application');
     }
     return result;
   },
 
   async updateApplicationStatus(
     id: string,
-    status: string,
-    extra?: { interviewTime?: string; staffNotes?: string }
-  ): Promise<{ application: AdoptionApplication; transactionResult?: TransactionExecutionResult }> {
+    status: 'Approved' | 'Rejected',
+    adminNotes?: string
+  ): Promise<{ success: boolean; applicationId: string; status: string; emailDelivery?: any }> {
     const res = await fetch(`/api/applications/${id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, ...extra }),
+      body: JSON.stringify({ status, adminNotes }),
     });
     const result = await res.json();
     if (!res.ok) {
-      throw new Error(result.message || result.error || 'Cập nhật trạng thái thất bại');
+      throw new Error(result.error || 'Failed to update application status');
     }
     return result;
   },
 
   // CARE LOGS
-  async getCareLogs(params?: { petId?: string; userId?: string }): Promise<CareLog[]> {
-    const query = new URLSearchParams();
-    if (params?.petId) query.append('petId', params.petId);
-    if (params?.userId) query.append('userId', params.userId);
-
-    const res = await fetch(`/api/care-logs?${query.toString()}`);
+  async getCareLogs(petId?: string): Promise<CareLog[]> {
+    const query = petId ? `?petId=${encodeURIComponent(petId)}` : '';
+    const res = await fetch(`/api/care-logs${query}`);
     return res.json();
   },
 
@@ -307,7 +258,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Đăng nhật ký thất bại');
+      throw new Error(err.error || 'Failed to publish care log');
     }
     return res.json();
   },
@@ -318,7 +269,7 @@ export const api = {
     return res.json();
   },
 
-  async createDonation(data: Partial<Donation>): Promise<Donation> {
+  async createDonation(data: Partial<Donation>): Promise<{ donation: Donation; emailResult?: any }> {
     const res = await fetch('/api/donations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -326,82 +277,23 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Gửi quyên góp thất bại');
+      throw new Error(err.error || 'Failed to process donation');
     }
     return res.json();
   },
 
-  // SQL & PROCEDURES
-  async runMatchingProcedure(criteria: MatchCriteria): Promise<{
-    procedureName: string;
-    criteria: MatchCriteria;
-    resultCount: number;
-    matchedPets: Pet[];
-    sqlCode: string;
-  }> {
-    const res = await fetch('/api/sql/stored-procedure/match-pets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(criteria),
-    });
+  // IN-APP NOTIFICATIONS
+  async getNotifications(email?: string): Promise<InAppNotification[]> {
+    const query = email ? `?email=${encodeURIComponent(email)}` : '';
+    const res = await fetch(`/api/notifications${query}`);
     return res.json();
   },
 
-  async getShelterStatsView(): Promise<{
-    viewName: string;
-    data: ShelterStatistics[];
-    sqlDefinition: string;
-  }> {
-    const res = await fetch('/api/sql/views/shelter-stats');
-    return res.json();
+  async markNotificationRead(id: string): Promise<void> {
+    await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
   },
 
-  async executeRawSql(query: string): Promise<any> {
-    const res = await fetch('/api/sql/raw-query-simulator', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || 'Lỗi truy vấn SQL');
-    return result;
-  },
-
-  // AI ASSISTANT
-  async askAiAssistant(prompt: string, petId?: string): Promise<{ answer: string; source: string }> {
-    const res = await fetch('/api/ai/ask-pet-assistant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, petId }),
-    });
-    return res.json();
-  },
-
-  // EMAIL NOTIFICATION SIMULATION
-  async getEmailLogs(): Promise<import('../types').EmailNotificationLog[]> {
-    const res = await fetch('/api/notifications/email-logs');
-    return res.json();
-  },
-
-  async sendSimulatedStatusEmail(payload: {
-    applicationId: string;
-    status?: string;
-    customNote?: string;
-    interviewTime?: string;
-  }): Promise<{ success: boolean; emailLog: import('../types').EmailNotificationLog; message: string }> {
-    const res = await fetch('/api/notifications/simulate-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Gửi email giả lập thất bại');
-    }
-    return data;
-  },
-
-  // MYSQL DATABASE CONNECTION & MANAGEMENT
+  // MYSQL DB STATUS
   async getMySqlStatus(): Promise<{
     isConnected: boolean;
     lastChecked: string | null;
@@ -421,23 +313,7 @@ export const api = {
     return res.json();
   },
 
-  async testMySqlConnection(config?: {
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    database?: string;
-  }): Promise<{
-    success: boolean;
-    message: string;
-    host: string;
-    port: number;
-    database: string;
-    serverVersion?: string;
-    latencyMs?: number;
-    tablesCount?: number;
-    error?: string;
-  }> {
+  async testMySqlConnection(config?: any): Promise<any> {
     const res = await fetch('/api/mysql/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -446,29 +322,8 @@ export const api = {
     return res.json();
   },
 
-  async initMySqlSchema(): Promise<{
-    success: boolean;
-    message: string;
-    tablesCreated?: string[];
-  }> {
-    const res = await fetch('/api/mysql/init-schema', {
-      method: 'POST',
-    });
+  async initMySqlSchema(): Promise<any> {
+    const res = await fetch('/api/mysql/init-schema', { method: 'POST' });
     return res.json();
-  },
-
-  async seedMySqlData(): Promise<{
-    success: boolean;
-    message: string;
-  }> {
-    const res = await fetch('/api/mysql/seed', {
-      method: 'POST',
-    });
-    return res.json();
-  },
-
-  async getMySqlSchemaSql(): Promise<string> {
-    const res = await fetch('/api/mysql/schema-sql');
-    return res.text();
   },
 };

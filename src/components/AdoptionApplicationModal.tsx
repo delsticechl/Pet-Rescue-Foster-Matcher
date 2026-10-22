@@ -19,7 +19,7 @@ import { api } from '../services/api';
 interface AdoptionApplicationModalProps {
   pet: Pet | null;
   currentUser: UserType;
-  type: ApplicationType;
+  type?: ApplicationType;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -73,7 +73,7 @@ const triggerCelebrationConfetti = () => {
 export const AdoptionApplicationModal: React.FC<AdoptionApplicationModalProps> = ({
   pet,
   currentUser,
-  type,
+  type = 'Adopt',
   onClose,
   onSuccess,
 }) => {
@@ -105,9 +105,14 @@ export const AdoptionApplicationModal: React.FC<AdoptionApplicationModalProps> =
       const newApp = await api.createApplication({
         petId: pet.petId,
         userId: currentUser.userId,
-        type,
+        applicantName: currentUser.fullName,
+        applicantEmail: currentUser.email,
+        applicantPhone: currentUser.phone,
+        applicantAddress: currentUser.address,
+        type: (type as ApplicationType) || 'Adopt',
         housingType: formData.housingType,
         hasYard: formData.hasYard,
+        petExperience: formData.experienceDescription,
         experienceDescription: formData.experienceDescription,
         incomeMonthly: formData.incomeMonthly,
         otherPets: formData.otherPets,

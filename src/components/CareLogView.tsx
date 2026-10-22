@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Plus, Calendar, Scale, Smile, Image as ImageIcon, Heart, CheckCircle2, X, Search, RotateCcw, Upload, Check } from 'lucide-react';
 import { CareLog, User, Pet } from '../types';
 import { api } from '../services/api';
+import { realtimeWs } from '../services/websocket';
 
 interface CareLogViewProps {
   currentUser: User;
@@ -40,6 +41,14 @@ export const CareLogView: React.FC<CareLogViewProps> = ({ currentUser, pets }) =
 
   useEffect(() => {
     fetchLogs();
+
+    const unsub = realtimeWs.on('care_log:created', () => {
+      fetchLogs();
+    });
+
+    return () => {
+      unsub();
+    };
   }, []);
 
   const handleFileUpload = (file: File) => {

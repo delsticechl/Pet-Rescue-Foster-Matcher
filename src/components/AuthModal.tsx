@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, X, LogIn, UserPlus, ShieldCheck, Mail, Lock, Phone, MapPin, KeyRound, Sparkles } from 'lucide-react';
+import { X, LogIn, UserPlus, ShieldCheck, Mail, Lock, Phone, MapPin, CheckCircle2 } from 'lucide-react';
 import { User as UserType } from '../types';
 import { api } from '../services/api';
 
@@ -9,17 +9,21 @@ interface AuthModalProps {
   allUsers: UserType[];
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, allUsers }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  // Login form state
+
+  // Login Form
   const [loginIdentifier, setLoginIdentifier] = useState('AdminStaff');
   const [loginPassword, setLoginPassword] = useState('adminstaff123@');
 
-  // Register form state
+  // Register Form with Real Password Verification
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +40,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, a
       onLoginSuccess(res.user);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please verify your username and password.');
+      setError(err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }
@@ -44,22 +48,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, a
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName.trim() || !email.trim()) {
+      setError('Vui lòng nhập họ tên và email');
+      return;
+    }
+    if (registerPassword.length < 6) {
+      setError('Mật khẩu đăng ký phải có ít nhất 6 ký tự');
+      return;
+    }
+    if (registerPassword !== confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp nhau. Vui lòng kiểm tra lại!');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const res = await api.register({ fullName, email, phone, address });
+      const res = await api.register({
+        fullName,
+        email,
+        password: registerPassword,
+        confirmPassword,
+        phone,
+        address,
+      });
       onLoginSuccess(res.user);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'Đăng ký tài khoản thất bại');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (u: UserType) => {
-    onLoginSuccess(u);
-    onClose();
   };
 
   const fillAdminCredentials = () => {
@@ -67,8 +86,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, a
     setLoginPassword('adminstaff123@');
     setError(null);
   };
-
-  const adminUser = allUsers.find((u) => u.username === 'AdminStaff' || u.role === 'Admin') || allUsers[0];
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
@@ -80,10 +97,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, a
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                {mode === 'login' ? 'System Login' : 'Create New Account'}
+                {mode === 'login' ? 'Đăng Nhập Hệ Thống' : 'Đăng Ký Tài Khoản Mới'}
               </h3>
               <p className="text-[11px] text-slate-400">
-                {mode === 'login' ? 'For Administrators (AdminStaff) & Adopters' : 'Create a prospective adopter profile'}
+                {mode === 'login' ? 'Dành cho Quản trị viên (AdminStaff) & Người nhận nuôi' : 'Tạo hồ sơ nhận nuôi thú cưng'}
               </p>
             </div>
           </div>
@@ -106,7 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, a
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
-            <LogIn className="w-3.5 h-3.5" /> Sign In
+            <LogIn className="w-3.5 h-3.5" /> Đăng Nhập
           </button>
           <button
             type="button"
@@ -120,136 +137,76 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, a
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
-            <UserPlus className="w-3.5 h-3.5" /> Register
+            <UserPlus className="w-3.5 h-3.5" /> Đăng Ký
           </button>
         </div>
 
+        {/* Highlighted Admin Account Quick Action */}
+        {mode === 'login' && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 space-y-2 shadow-md">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-300">
+                <ShieldCheck className="w-4 h-4 text-amber-400" /> Tài khoản Quản trị viên (AdminStaff)
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 font-bold">
+                Quyền đăng & quản lý Pet
+              </span>
+            </div>
 
+            <div className="text-[11px] text-slate-300 font-mono space-y-0.5 bg-black/40 p-2 rounded-xl border border-slate-800">
+              <div>Tài khoản: <strong className="text-white">AdminStaff</strong></div>
+              <div>Mật khẩu: <strong className="text-amber-300">adminstaff123@</strong></div>
+            </div>
 
-        {error && (
-          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs border border-rose-200 dark:border-rose-800 flex items-center gap-2 animate-in fade-in">
-            <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-            <span>{error}</span>
+            <button
+              type="button"
+              onClick={fillAdminCredentials}
+              className="w-full py-1.5 text-xs rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold transition-all"
+            >
+              Điền nhanh tài khoản AdminStaff
+            </button>
           </div>
         )}
 
-        {/* Mode: Login Form */}
-        {mode === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-3 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Username or Email:
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
-                  placeholder="AdminStaff or user email..."
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Password:
-              </label>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
-                  placeholder="adminstaff123@"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 mt-1 flex items-center justify-center gap-1.5"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
-            </button>
-
-            {/* Other Demo User Accounts */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
-              <div className="text-[10px] font-bold text-slate-400 uppercase">
-                Or quick login as prospective adopter:
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {allUsers
-                  .filter((u) => u.role === 'Adopter')
-                  .slice(0, 2)
-                  .map((u) => (
-                    <button
-                      key={u.userId}
-                      type="button"
-                      onClick={() => handleQuickLogin(u)}
-                      className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-left flex items-center gap-2 transition-colors"
-                    >
-                      <img src={u.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                      <div className="truncate text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        {u.fullName}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </div>
-          </form>
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-xs">
+            {error}
+          </div>
         )}
 
-        {/* Mode: Register Form */}
-        {mode === 'register' && (
-          <form onSubmit={handleRegister} className="space-y-3 text-xs">
+        {/* LOGIN FORM */}
+        {mode === 'login' ? (
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name:</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                placeholder="John Doe"
-                required
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email:</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                placeholder="john.doe@example.com"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phone Number:</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  placeholder="+1 (555) 019-2834"
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Address / City:</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Email hoặc Tên đăng nhập
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  placeholder="San Francisco, CA"
+                  required
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  placeholder="adminstaff@pawfund.org hoặc AdminStaff"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Mật khẩu
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -257,10 +214,129 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess, a
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-md transition-colors disabled:opacity-50 mt-2 flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-md shadow-sky-500/20 transition-all flex items-center justify-center gap-1.5"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>{loading ? 'Creating Profile...' : 'Register Profile (USERS Table)'}</span>
+              {loading ? 'Đang xác thực...' : 'Đăng Nhập Ngay'}
+            </button>
+          </form>
+        ) : (
+          /* REGISTER FORM WITH VERIFIED PASSWORDS */
+          <form onSubmit={handleRegister} className="space-y-3.5">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Họ và Tên <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Nguyễn Văn A"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Địa chỉ Email <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="adopter@example.com"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Mật khẩu <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    placeholder="Tối thiểu 6 ký tự"
+                    className="w-full pl-8 pr-2.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Xác nhận mật khẩu <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Nhập lại mật khẩu"
+                    className={`w-full pl-8 pr-2.5 py-2 text-xs rounded-xl border bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 ${
+                      confirmPassword && registerPassword !== confirmPassword
+                        ? 'border-rose-400 focus:ring-rose-400'
+                        : confirmPassword && registerPassword === confirmPassword
+                        ? 'border-emerald-400 focus:ring-emerald-400'
+                        : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Số điện thoại
+                </label>
+                <div className="relative">
+                  <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="0912345678"
+                    className="w-full pl-8 pr-2.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Địa chỉ cư trú
+                </label>
+                <div className="relative">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Hà Nội / TP.HCM"
+                    className="w-full pl-8 pr-2.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+            >
+              {loading ? 'Đang tạo tài khoản...' : 'Tạo Tài Khoản & Đăng Nhập'}
             </button>
           </form>
         )}

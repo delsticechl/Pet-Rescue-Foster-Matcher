@@ -42,51 +42,13 @@ export interface PetMedicalRecord {
   reminderStatus?: 'Pending' | 'Completed' | 'Dismissed';
 }
 
-export type HealthReminderUrgency = 'Overdue' | 'Today' | 'Urgent' | 'Upcoming' | 'Future';
-export type HealthReminderCategory = 'Vaccination' | 'PostOp' | 'InjuryTreatment' | 'Deworming' | 'GeneralCheckup';
-
-export interface HealthReminder {
-  reminderId: string;
-  petId: string;
-  petName: string;
-  petSpecies: PetSpecies;
-  petBreed: string;
-  petImage: string;
-  shelterId: string;
-  shelterName?: string;
-  recordId: string;
-  medicalDate: string;
-  diagnosis: string;
-  treatment: string;
-  vetName: string;
-  dueDate: string;
-  daysRemaining: number;
-  urgency: HealthReminderUrgency;
-  category: HealthReminderCategory;
-  categoryLabel: string;
-  medications?: string;
-  status: 'Pending' | 'Completed';
-  adopterId?: string;
-  adopterName?: string;
-  adopterEmail?: string;
-  adopterPhone?: string;
-}
-
-export interface HealthReminderSummary {
-  total: number;
-  overdue: number;
-  today: number;
-  next7Days: number;
-  next30Days: number;
-}
-
 export interface Pet {
   petId: string;
   name: string;
   species: PetSpecies;
   breed: string;
   ageMonths: number;
-  gender: 'Đực' | 'Cái';
+  gender: 'Đực' | 'Cái' | 'Male' | 'Female';
   healthStatus: PetHealthStatus;
   vaccinated: boolean;
   sterilized: boolean;
@@ -98,13 +60,16 @@ export interface Pet {
   description: string;
   shelterId: string;
   createdAt: string;
+  imageUrl?: string;
+  primaryImage?: string;
   images: PetImage[];
   medicalRecords?: PetMedicalRecord[];
-  // Calculated/Joined
+  medicalHistory?: PetMedicalRecord[];
+  // Joined/Display fields
   shelterName?: string;
-  primaryImage?: string;
   matchScore?: number;
   matchReasons?: string[];
+  matchExplanation?: string;
 }
 
 export interface Shelter {
@@ -125,23 +90,27 @@ export interface Shelter {
 }
 
 export type ApplicationType = 'Adopt' | 'Foster';
-export type ApplicationStatus = 'Submitted' | 'Interviewing' | 'Approved' | 'Rejected';
+export type ApplicationStatus = 'Pending' | 'Submitted' | 'Interviewing' | 'Approved' | 'Rejected';
 export type HousingType = 'Single Family House' | 'Apartment / Condo' | 'Rented House' | 'Townhouse / Villa' | 'Nhà riêng' | 'Chung cư' | 'Nhà thuê' | 'Biệt thự sân vườn';
 
 export interface AdoptionApplication {
   applicationId: string;
   petId: string;
   userId: string;
-  type: ApplicationType;
+  type?: ApplicationType;
   housingType: HousingType;
   hasYard: boolean;
-  experienceDescription: string;
-  incomeMonthly: string;
-  otherPets: string;
+  hasChildren?: boolean;
+  experienceDescription?: string;
+  petExperience?: string;
+  incomeMonthly?: string;
+  otherPets?: string;
   interviewTime?: string;
   staffNotes?: string;
+  adminNotes?: string;
   status: ApplicationStatus;
-  appliedAt: string;
+  appliedAt?: string;
+  submittedAt?: string;
   reviewedAt?: string;
   // Joined fields for display
   petName?: string;
@@ -161,10 +130,14 @@ export interface CareLog {
   userId: string;
   logDate: string;
   note: string;
+  notes?: string;
   imageUrl: string;
-  healthUpdate: string;
+  healthUpdate?: string;
   weightKg?: number;
   mood?: 'Vui vẻ & Tăng động' | 'Ngoan ngoãn & Thư giãn' | 'Hơi nhút nhát' | 'Khỏe mạnh';
+  staffName?: string;
+  authorName?: string;
+  category?: string;
   // Joined
   petName?: string;
   adopterName?: string;
@@ -173,79 +146,66 @@ export interface CareLog {
 export interface Donation {
   donationId: string;
   userId?: string;
-  shelterId: string;
+  shelterId?: string;
   shelterName?: string;
   amount: number;
-  paymentMethod: 'MoMo' | 'VietQR' | 'Chuyển khoản' | 'Thẻ quốc tế';
-  transactionCode: string;
+  paymentMethod: 'MoMo' | 'VietQR' | 'Chuyển khoản' | 'Thẻ quốc tế' | 'Transfer';
+  transactionCode?: string;
   donorName: string;
+  donorEmail?: string;
+  target?: string;
   message?: string;
-  donatedAt: string;
+  donatedAt?: string;
+  date?: string;
 }
 
-export interface MatchCriteria {
-  species?: PetSpecies | 'Tất cả';
-  housingType: HousingType;
-  hasYard: boolean;
-  hasChildren: boolean;
-  hasOtherPets: boolean;
-  experienceLevel: 'Chưa có' | 'Cơ bản' | 'Nhiều năm kinh nghiệm';
-  timeCommitmentHoursPerDay: number;
-  preferredAgeGroup?: 'Con (< 6 tháng)' | 'Trưởng thành (6-36 tháng)' | 'Lớn tuổi (> 3 năm)' | 'Bất kỳ';
-  activityPreference?: EnergyLevel | 'Bất kỳ';
-}
-
-export interface ShelterStatistics {
-  shelterId: string;
-  shelterName: string;
-  totalPets: number;
-  readyPets: number;
-  adoptedPets: number;
-  fosteredPets: number;
-  pendingApplications: number;
-  totalDonationAmount: number;
-  donationCount: number;
-}
-
-export interface TransactionStepLog {
-  step: number;
-  query: string;
-  status: 'SUCCESS' | 'ERROR' | 'ROLLED_BACK';
+export interface InAppNotification {
+  notificationId: string;
+  userId?: string;
+  recipientEmail?: string;
+  title: string;
   message: string;
-  affectedRows: number;
-  timestamp: string;
+  type: 'adoption' | 'donation' | 'pet' | 'system';
+  isRead: boolean;
+  createdAt: string;
+  link?: string;
+}
+
+export interface AiMatchRequest {
+  lifestyleDescription: string;
+  speciesPreference?: 'Dog' | 'Cat' | 'All';
+  livingSpace?: 'Apartment' | 'HouseWithYard' | 'Rented';
+  familyWithKids?: boolean;
+  hasOtherPets?: boolean;
+}
+
+export interface AiMatchResult {
+  petId: string;
+  score: number;
+  reason: string;
+  pet?: Pet;
 }
 
 export interface TransactionExecutionResult {
   transactionId: string;
   success: boolean;
-  steps: TransactionStepLog[];
   finalStatus: 'COMMITTED' | 'ROLLED_BACK';
   message: string;
 }
 
 export interface EmailNotificationLog {
   logId: string;
-  applicationId: string;
+  applicationId?: string;
   recipientEmail: string;
   recipientName: string;
-  petName: string;
+  petName?: string;
   petSpecies?: string;
   petImage?: string;
   subject: string;
-  status: ApplicationStatus;
+  status: string;
   sentAt: string;
   sender: string;
   contentPreview: string;
-  htmlContent: string;
-  smtpStatusCode: string;
+  htmlContent?: string;
   deliveryStatus: 'Delivered' | 'Queued' | 'Sent';
-  metadata: {
-    ip: string;
-    serverHost: string;
-    tlsVersion: string;
-    messageId: string;
-    interviewTime?: string;
-    staffNotes?: string;
-  };
 }

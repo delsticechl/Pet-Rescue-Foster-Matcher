@@ -32,7 +32,7 @@ export const SheltersAndDonation: React.FC<SheltersAndDonationProps> = ({ curren
   const [customAmount, setCustomAmount] = useState<string>('');
   const [donorName, setDonorName] = useState<string>(currentUser?.fullName || 'Kind Supporter');
   const [message, setMessage] = useState<string>('Supporting emergency medical care and nutritious food for the rescued pets!');
-  const [paymentMethod, setPaymentMethod] = useState<'VietQR' | 'MoMo' | 'Chuyển khoản' | any>('Online Transfer');
+  const [paymentMethod, setPaymentMethod] = useState<'VietQR' | 'MoMo' | 'Chuyển khoản' | any>('VietQR');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [donationSuccess, setDonationSuccess] = useState<Donation | null>(null);
@@ -88,7 +88,7 @@ export const SheltersAndDonation: React.FC<SheltersAndDonationProps> = ({ curren
         message,
       });
 
-      setDonationSuccess(result);
+      setDonationSuccess((result as any).donation || result);
       confetti({
         particleCount: 100,
         spread: 80,
@@ -237,7 +237,7 @@ export const SheltersAndDonation: React.FC<SheltersAndDonationProps> = ({ curren
               <p className="text-slate-500 italic line-clamp-1">"{d.message}"</p>
               <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-800">
                 <span>{d.shelterName}</span>
-                <span>{d.paymentMethod} • {d.donatedAt.split(' ')[0]}</span>
+                <span>{d.paymentMethod} • {(d.donatedAt || d.date || '').split(' ')[0]}</span>
               </div>
             </div>
           ))}

@@ -9,7 +9,7 @@ import {
   User,
   PetMedicalRecord,
   PetImage,
-  EmailNotificationLog,
+  InAppNotification,
 } from '../types';
 
 dotenv.config();
@@ -27,9 +27,8 @@ export interface MySqlConfig {
   ssl?: boolean | object;
 }
 
-// Default configuration loaded from Environment Variables
+// Load default config from environment variables
 export function getMySqlEnvConfig(): MySqlConfig {
-  // If MYSQL_URL / DATABASE_URL is provided, parse it or fallback to individual vars
   const dbUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
   if (dbUrl && dbUrl.startsWith('mysql://')) {
     try {
@@ -76,9 +75,6 @@ let connectionStatus: {
   error: null,
 };
 
-/**
- * Creates or retrieves the singleton MySQL Connection Pool
- */
 export function getMySqlPool(customConfig?: Partial<MySqlConfig>): Pool {
   if (customConfig) {
     currentConfig = { ...currentConfig, ...customConfig };
@@ -100,7 +96,7 @@ export function getMySqlPool(customConfig?: Partial<MySqlConfig>): Pool {
       queueLimit: currentConfig.queueLimit ?? 0,
       multipleStatements: true,
       dateStrings: true,
-      connectTimeout: 8000,
+      connectTimeout: 5000,
     };
 
     activePool = mysql.createPool(poolOptions);
@@ -109,9 +105,6 @@ export function getMySqlPool(customConfig?: Partial<MySqlConfig>): Pool {
   return activePool;
 }
 
-/**
- * Test connectivity with the MySQL database
- */
 export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): Promise<{
   success: boolean;
   message: string;
@@ -135,18 +128,16 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
       password: cfg.password,
       database: cfg.database,
       multipleStatements: true,
-      connectTimeout: 5000,
+      connectTimeout: 4000,
     };
 
     tempPool = mysql.createPool(poolOptions);
     const connection = await tempPool.getConnection();
     const latency = Date.now() - startTime;
 
-    // Fetch MySQL version
     const [verRows] = await connection.query<RowDataPacket[]>('SELECT VERSION() AS version');
     const version = verRows[0]?.version || 'MySQL 8.0';
 
-    // Count tables in current database
     const [tblRows] = await connection.query<RowDataPacket[]>(
       'SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = ?',
       [cfg.database]
@@ -167,7 +158,6 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
       error: null,
     };
 
-    // If test succeeded and no config was specified, keep active pool updated
     if (!configToTest) {
       activePool = tempPool;
     }
@@ -205,9 +195,6 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
   }
 }
 
-/**
- * Get current cached status
- */
 export function getMySqlStatus() {
   return {
     ...connectionStatus,
@@ -221,26 +208,10 @@ export function getMySqlStatus() {
   };
 }
 
-/**
- * Execute raw SQL query with parameters
- */
-export async function executeMySqlQuery<T = any>(sql: string, params: any[] = []): Promise<T> {
-  const pool = getMySqlPool();
-  const [results] = await pool.query(sql, params);
-  return results as T;
-}
-
-/**
- * Complete DDL Script for creating MySQL 3NF relational schema
- */
 export const MYSQL_SCHEMA_DDL = `
--- ==========================================================
--- PawFund Rescue & Adoption Platform - MySQL Relational Schema (3NF)
--- ==========================================================
-
 CREATE TABLE IF NOT EXISTS users (
-  user_id VARCHAR(20) PRIMARY KEY,
-  username VARCHAR(50),
+  user_id VARCHAR(50) PRIMARY KEY,
+  username VARCHAR(50) UNIQUE,
   full_name VARCHAR(100) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
@@ -252,71 +223,73 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS shelters (
-  shelter_id VARCHAR(20) PRIMARY KEY,
+  shelter_id VARCHAR(50) PRIMARY KEY,
   shelter_name VARCHAR(150) NOT NULL,
   address VARCHAR(255) NOT NULL,
   phone VARCHAR(20) NOT NULL,
   email VARCHAR(100) NOT NULL,
-  manager_id VARCHAR(20) NOT NULL,
+  manager_id VARCHAR(50) NOT NULL,
   capacity INT NOT NULL DEFAULT 50,
   current_occupancy INT NOT NULL DEFAULT 0,
   image_url TEXT,
+  bank_account VARCHAR(50),
+  bank_name VARCHAR(100),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (manager_id) REFERENCES users(user_id) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pets (
-  pet_id VARCHAR(20) PRIMARY KEY,
+  pet_id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
-  species VARCHAR(20) NOT NULL,
+  species VARCHAR(30) NOT NULL,
   breed VARCHAR(100),
   age_months INT NOT NULL DEFAULT 12,
-  gender ENUM('Đực', 'Cái') NOT NULL,
+  gender VARCHAR(20) NOT NULL,
   health_status VARCHAR(100) NOT NULL DEFAULT 'Healthy',
   vaccinated BOOLEAN NOT NULL DEFAULT FALSE,
   sterilized BOOLEAN NOT NULL DEFAULT FALSE,
   adoption_status ENUM('Pending', 'Ready', 'Adopted', 'Fostered') NOT NULL DEFAULT 'Ready',
-  energy_level VARCHAR(20) NOT NULL DEFAULT 'Medium',
+  energy_level VARCHAR(30) NOT NULL DEFAULT 'Medium',
   requires_yard BOOLEAN NOT NULL DEFAULT FALSE,
   good_with_kids BOOLEAN NOT NULL DEFAULT TRUE,
   good_with_pets BOOLEAN NOT NULL DEFAULT TRUE,
   description TEXT,
-  shelter_id VARCHAR(20) NOT NULL,
+  shelter_id VARCHAR(50) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (shelter_id) REFERENCES shelters(shelter_id) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pet_images (
-  image_id VARCHAR(30) PRIMARY KEY,
-  pet_id VARCHAR(20) NOT NULL,
+  image_id VARCHAR(50) PRIMARY KEY,
+  pet_id VARCHAR(50) NOT NULL,
   image_url LONGTEXT NOT NULL,
   is_primary BOOLEAN NOT NULL DEFAULT FALSE,
   caption VARCHAR(255),
   file_name VARCHAR(255),
   file_size INT,
   mime_type VARCHAR(50),
-  upload_source VARCHAR(30) DEFAULT 'ExternalURL',
+  upload_source VARCHAR(30) DEFAULT 'LocalUpload',
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (pet_id) REFERENCES pets(pet_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pet_medical_records (
-  record_id VARCHAR(30) PRIMARY KEY,
-  pet_id VARCHAR(20) NOT NULL,
+  record_id VARCHAR(50) PRIMARY KEY,
+  pet_id VARCHAR(50) NOT NULL,
   medical_date VARCHAR(30) NOT NULL,
   diagnosis VARCHAR(255) NOT NULL,
   treatment TEXT NOT NULL,
   vet_name VARCHAR(100) NOT NULL,
   next_follow_up VARCHAR(30),
   medications TEXT,
-  reminder_status VARCHAR(20) DEFAULT 'Pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (pet_id) REFERENCES pets(pet_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS adoption_applications (
-  application_id VARCHAR(20) PRIMARY KEY,
-  pet_id VARCHAR(20) NOT NULL,
+  application_id VARCHAR(50) PRIMARY KEY,
+  pet_id VARCHAR(50) NOT NULL,
+  user_id VARCHAR(50),
   applicant_name VARCHAR(100) NOT NULL,
   applicant_email VARCHAR(100) NOT NULL,
   applicant_phone VARCHAR(20) NOT NULL,
@@ -326,7 +299,7 @@ CREATE TABLE IF NOT EXISTS adoption_applications (
   has_children BOOLEAN NOT NULL DEFAULT FALSE,
   pet_experience TEXT,
   other_pets VARCHAR(255),
-  status ENUM('Pending', 'Reviewing', 'Approved', 'Rejected') NOT NULL DEFAULT 'Pending',
+  status ENUM('Pending', 'Approved', 'Rejected') NOT NULL DEFAULT 'Pending',
   admin_notes TEXT,
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   reviewed_at TIMESTAMP NULL DEFAULT NULL,
@@ -334,54 +307,48 @@ CREATE TABLE IF NOT EXISTS adoption_applications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS care_logs (
-  log_id VARCHAR(20) PRIMARY KEY,
-  pet_id VARCHAR(20) NOT NULL,
-  staff_name VARCHAR(100) NOT NULL,
+  log_id VARCHAR(50) PRIMARY KEY,
+  pet_id VARCHAR(50) NOT NULL,
+  user_id VARCHAR(50),
+  author_name VARCHAR(100) NOT NULL,
   log_date VARCHAR(30) NOT NULL,
-  category VARCHAR(50) NOT NULL,
   notes TEXT NOT NULL,
+  image_url LONGTEXT,
+  health_update TEXT,
+  mood VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (pet_id) REFERENCES pets(pet_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS donations (
-  donation_id VARCHAR(20) PRIMARY KEY,
+  donation_id VARCHAR(50) PRIMARY KEY,
+  user_id VARCHAR(50),
   donor_name VARCHAR(100) NOT NULL,
+  donor_email VARCHAR(100),
   amount DECIMAL(12,2) NOT NULL,
   date VARCHAR(30) NOT NULL,
-  target VARCHAR(150) NOT NULL,
+  target VARCHAR(150),
   message TEXT,
   payment_method VARCHAR(50) DEFAULT 'Transfer',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS email_notification_logs (
-  log_id VARCHAR(30) PRIMARY KEY,
-  application_id VARCHAR(20),
-  recipient_email VARCHAR(100) NOT NULL,
-  recipient_name VARCHAR(100) NOT NULL,
-  pet_name VARCHAR(100),
-  pet_species VARCHAR(50),
-  pet_image TEXT,
-  subject VARCHAR(255) NOT NULL,
-  status VARCHAR(50) NOT NULL,
-  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  sender VARCHAR(150) NOT NULL,
-  content_preview TEXT,
-  html_content LONGTEXT,
-  smtp_status_code VARCHAR(100),
-  delivery_status VARCHAR(50),
-  metadata JSON
+CREATE TABLE IF NOT EXISTS in_app_notifications (
+  notification_id VARCHAR(50) PRIMARY KEY,
+  user_id VARCHAR(50),
+  recipient_email VARCHAR(100),
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(50) NOT NULL DEFAULT 'adoption',
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  link VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
-/**
- * Initialize all database tables and schema in MySQL
- */
 export async function initMySqlSchema(): Promise<{ success: boolean; message: string; tablesCreated?: string[] }> {
   try {
     const pool = getMySqlPool();
-    // Split statements and execute individually to avoid multiple statement delimiter errors
     const statements = MYSQL_SCHEMA_DDL
       .split(';')
       .map((s) => s.trim())
@@ -391,11 +358,52 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
       await pool.query(sql);
     }
 
+    // Seed ONLY AdminStaff user if users table is empty
+    const [uRows] = await pool.query<RowDataPacket[]>('SELECT COUNT(*) AS total FROM users');
+    if ((uRows[0]?.total || 0) === 0) {
+      await pool.query(
+        `INSERT INTO users (user_id, username, full_name, email, password_hash, phone, address, role, avatar_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'USR-ADMIN',
+          'AdminStaff',
+          'AdminStaff',
+          'adminstaff@pawfund.org',
+          'adminstaff123@', // Plain/hash for AdminStaff
+          '0988776655',
+          'Văn Phòng Cứu Hộ PawFund Toàn Quốc',
+          'Admin',
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        ]
+      );
+    }
+
+    // Ensure default shelter exists
+    const [sRows] = await pool.query<RowDataPacket[]>('SELECT COUNT(*) AS total FROM shelters');
+    if ((sRows[0]?.total || 0) === 0) {
+      await pool.query(
+        `INSERT INTO shelters (shelter_id, shelter_name, address, phone, email, manager_id, capacity, current_occupancy, bank_account, bank_name, image_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'SHL-01',
+          'Trạm Cứu Hộ Động Vật PawFund',
+          '264 Âu Cơ, P. Nhật Tân, Q. Tây Hồ, Hà Nội',
+          '0903112233',
+          'contact@pawfund.org',
+          'USR-ADMIN',
+          60,
+          0,
+          '19034567890011',
+          'Techcombank - PawFund Rescue Fund',
+          'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=600&q=80',
+        ]
+      );
+    }
+
     const [rows] = await pool.query<RowDataPacket[]>(
       'SELECT table_name FROM information_schema.tables WHERE table_schema = ?',
       [currentConfig.database]
     );
-
     const tables = rows.map((r) => r.TABLE_NAME || r.table_name);
 
     return {
@@ -411,16 +419,10 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
   }
 }
 
-// ==========================================================
-// MySQL Repository / Query Service
-// ==========================================================
-
 export const MySqlService = {
-  // Test connection
   test: testMySqlConnection,
   getStatus: getMySqlStatus,
   initSchema: initMySqlSchema,
-  execute: executeMySqlQuery,
 
   // Pets
   async getPets(): Promise<Pet[]> {
@@ -429,9 +431,10 @@ export const MySqlService = {
     const [imgRows] = await pool.query<RowDataPacket[]>('SELECT * FROM pet_images ORDER BY is_primary DESC');
     const [medRows] = await pool.query<RowDataPacket[]>('SELECT * FROM pet_medical_records ORDER BY medical_date DESC');
 
-    const imagesByPet = (imgRows as any[]).reduce((acc, img) => {
-      if (!acc[img.pet_id]) acc[img.pet_id] = [];
-      acc[img.pet_id].push({
+    const imagesByPet: Record<string, PetImage[]> = {};
+    for (const img of imgRows as any[]) {
+      if (!imagesByPet[img.pet_id]) imagesByPet[img.pet_id] = [];
+      imagesByPet[img.pet_id].push({
         imageId: img.image_id,
         petId: img.pet_id,
         imageUrl: img.image_url,
@@ -443,12 +446,12 @@ export const MySqlService = {
         uploadSource: img.upload_source,
         uploadedAt: img.uploaded_at,
       });
-      return acc;
-    }, {} as Record<string, PetImage[]>);
+    }
 
-    const medicalByPet = (medRows as any[]).reduce((acc, med) => {
-      if (!acc[med.pet_id]) acc[med.pet_id] = [];
-      acc[med.pet_id].push({
+    const medicalByPet: Record<string, PetMedicalRecord[]> = {};
+    for (const med of medRows as any[]) {
+      if (!medicalByPet[med.pet_id]) medicalByPet[med.pet_id] = [];
+      medicalByPet[med.pet_id].push({
         recordId: med.record_id,
         petId: med.pet_id,
         medicalDate: med.medical_date,
@@ -457,10 +460,8 @@ export const MySqlService = {
         vetName: med.vet_name,
         nextFollowUp: med.next_follow_up,
         medications: med.medications,
-        reminderStatus: med.reminder_status,
       });
-      return acc;
-    }, {} as Record<string, PetMedicalRecord[]>);
+    }
 
     return (petRows as any[]).map((row) => {
       const petImgs = imagesByPet[row.pet_id] || [];
@@ -483,8 +484,10 @@ export const MySqlService = {
         description: row.description || '',
         shelterId: row.shelter_id,
         createdAt: row.created_at,
-        imageUrl: primaryImg ? primaryImg.imageUrl : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+        imageUrl: primaryImg ? primaryImg.imageUrl : '',
+        primaryImage: primaryImg ? primaryImg.imageUrl : '',
         images: petImgs,
+        medicalRecords: medicalByPet[row.pet_id] || [],
         medicalHistory: medicalByPet[row.pet_id] || [],
       };
     });
@@ -512,7 +515,7 @@ export const MySqlService = {
       uploadedAt: img.uploaded_at,
     }));
 
-    const medicalHistory: PetMedicalRecord[] = (medRows as any[]).map((med) => ({
+    const medicalRecords: PetMedicalRecord[] = (medRows as any[]).map((med) => ({
       recordId: med.record_id,
       petId: med.pet_id,
       medicalDate: med.medical_date,
@@ -521,7 +524,6 @@ export const MySqlService = {
       vetName: med.vet_name,
       nextFollowUp: med.next_follow_up,
       medications: med.medications,
-      reminderStatus: med.reminder_status,
     }));
 
     const primaryImg = images.find((i) => i.isPrimary) || images[0];
@@ -545,12 +547,18 @@ export const MySqlService = {
       shelterId: row.shelter_id,
       createdAt: row.created_at,
       imageUrl: primaryImg ? primaryImg.imageUrl : '',
+      primaryImage: primaryImg ? primaryImg.imageUrl : '',
       images,
-      medicalHistory,
+      medicalRecords,
+      medicalHistory: medicalRecords,
     };
   },
 
-  async createPet(pet: Pet): Promise<Pet> {
+  async createPetWithDetails(
+    pet: Pet,
+    primaryImage?: { imageUrl: string; fileName?: string; fileSize?: number; mimeType?: string },
+    initialMedicalRecord?: Partial<PetMedicalRecord>
+  ): Promise<Pet> {
     const pool = getMySqlPool();
     await pool.query(
       `INSERT INTO pets (
@@ -565,7 +573,7 @@ export const MySqlService = {
         pet.breed || '',
         pet.ageMonths || 12,
         pet.gender,
-        pet.healthStatus,
+        pet.healthStatus || 'Healthy',
         pet.vaccinated ? 1 : 0,
         pet.sterilized ? 1 : 0,
         pet.adoptionStatus || 'Ready',
@@ -574,19 +582,60 @@ export const MySqlService = {
         pet.goodWithKids ? 1 : 0,
         pet.goodWithPets ? 1 : 0,
         pet.description || '',
-        pet.shelterId,
+        pet.shelterId || 'SHL-01',
       ]
     );
 
-    // Save primary image if exists
-    if (pet.imageUrl) {
+    const savedImages: PetImage[] = [];
+    if (primaryImage?.imageUrl || pet.imageUrl) {
+      const imgId = `IMG-${Date.now()}`;
+      const imgUrl = primaryImage?.imageUrl || pet.imageUrl || '';
       await pool.query(
-        `INSERT INTO pet_images (image_id, pet_id, image_url, is_primary) VALUES (?, ?, ?, 1)`,
-        [`IMG-${Date.now()}`, pet.petId, pet.imageUrl]
+        `INSERT INTO pet_images (image_id, pet_id, image_url, is_primary, file_name, file_size, mime_type, upload_source)
+         VALUES (?, ?, ?, 1, ?, ?, ?, 'LocalUpload')`,
+        [imgId, pet.petId, imgUrl, primaryImage?.fileName || 'pet_photo.jpg', primaryImage?.fileSize || 0, primaryImage?.mimeType || 'image/jpeg']
       );
+      savedImages.push({
+        imageId: imgId,
+        petId: pet.petId,
+        imageUrl: imgUrl,
+        isPrimary: true,
+      });
     }
 
-    return pet;
+    const savedMedical: PetMedicalRecord[] = [];
+    if (initialMedicalRecord?.diagnosis && initialMedicalRecord?.treatment) {
+      const recId = `MED-${Date.now()}`;
+      await pool.query(
+        `INSERT INTO pet_medical_records (record_id, pet_id, medical_date, diagnosis, treatment, vet_name, medications)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          recId,
+          pet.petId,
+          initialMedicalRecord.medicalDate || new Date().toISOString().split('T')[0],
+          initialMedicalRecord.diagnosis,
+          initialMedicalRecord.treatment,
+          initialMedicalRecord.vetName || 'Bác sĩ thú y PawFund',
+          initialMedicalRecord.medications || '',
+        ]
+      );
+      savedMedical.push({
+        recordId: recId,
+        petId: pet.petId,
+        medicalDate: initialMedicalRecord.medicalDate || new Date().toISOString().split('T')[0],
+        diagnosis: initialMedicalRecord.diagnosis,
+        treatment: initialMedicalRecord.treatment,
+        vetName: initialMedicalRecord.vetName || 'Bác sĩ thú y PawFund',
+        medications: initialMedicalRecord.medications || '',
+      });
+    }
+
+    return {
+      ...pet,
+      images: savedImages,
+      medicalRecords: savedMedical,
+      medicalHistory: savedMedical,
+    };
   },
 
   async updatePet(id: string, pet: Partial<Pet>): Promise<boolean> {
@@ -608,16 +657,14 @@ export const MySqlService = {
     if (pet.goodWithKids !== undefined) { updates.push('good_with_kids = ?'); values.push(pet.goodWithKids ? 1 : 0); }
     if (pet.goodWithPets !== undefined) { updates.push('good_with_pets = ?'); values.push(pet.goodWithPets ? 1 : 0); }
     if (pet.description !== undefined) { updates.push('description = ?'); values.push(pet.description); }
-    if (pet.shelterId !== undefined) { updates.push('shelter_id = ?'); values.push(pet.shelterId); }
 
     if (updates.length === 0) return true;
-
     values.push(id);
+
     const [res] = await pool.query<ResultSetHeader>(
       `UPDATE pets SET ${updates.join(', ')} WHERE pet_id = ?`,
       values
     );
-
     return res.affectedRows > 0;
   },
 
@@ -625,6 +672,33 @@ export const MySqlService = {
     const pool = getMySqlPool();
     const [res] = await pool.query<ResultSetHeader>('DELETE FROM pets WHERE pet_id = ?', [id]);
     return res.affectedRows > 0;
+  },
+
+  async addMedicalRecord(petId: string, record: Partial<PetMedicalRecord>): Promise<PetMedicalRecord> {
+    const pool = getMySqlPool();
+    const recordId = `MED-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO pet_medical_records (record_id, pet_id, medical_date, diagnosis, treatment, vet_name, medications)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        recordId,
+        petId,
+        record.medicalDate || new Date().toISOString().split('T')[0],
+        record.diagnosis || '',
+        record.treatment || '',
+        record.vetName || 'Bác sĩ PawFund',
+        record.medications || '',
+      ]
+    );
+    return {
+      recordId,
+      petId,
+      medicalDate: record.medicalDate || new Date().toISOString().split('T')[0],
+      diagnosis: record.diagnosis || '',
+      treatment: record.treatment || '',
+      vetName: record.vetName || 'Bác sĩ PawFund',
+      medications: record.medications || '',
+    };
   },
 
   // Shelters
@@ -640,17 +714,27 @@ export const MySqlService = {
       managerId: r.manager_id,
       capacity: r.capacity,
       currentPetsCount: r.current_occupancy || 0,
-      imageUrl: r.image_url || 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=800&q=80',
+      rating: 5.0,
+      description: r.description || 'Trạm cứu hộ PawFund tiếp nhận và chăm sóc thú cưng.',
+      bankAccount: r.bank_account || '',
+      bankName: r.bank_name || '',
+      imageUrl: r.image_url || 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=600&q=80',
     }));
   },
 
   // Applications
   async getApplications(): Promise<AdoptionApplication[]> {
     const pool = getMySqlPool();
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM adoption_applications ORDER BY submitted_at DESC');
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT a.*, p.name AS pet_name, p.species AS pet_species, p.breed AS pet_breed
+       FROM adoption_applications a
+       LEFT JOIN pets p ON a.pet_id = p.pet_id
+       ORDER BY a.submitted_at DESC`
+    );
     return (rows as any[]).map((r) => ({
       applicationId: r.application_id,
       petId: r.pet_id,
+      userId: r.user_id,
       applicantName: r.applicant_name,
       applicantEmail: r.applicant_email,
       applicantPhone: r.applicant_phone,
@@ -664,42 +748,245 @@ export const MySqlService = {
       adminNotes: r.admin_notes || '',
       submittedAt: r.submitted_at,
       reviewedAt: r.reviewed_at || undefined,
+      petName: r.pet_name,
+      petSpecies: r.pet_species,
+      petBreed: r.pet_breed,
     }));
+  },
+
+  async createApplication(app: Partial<AdoptionApplication>): Promise<AdoptionApplication> {
+    const pool = getMySqlPool();
+    const appId = `APP-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO adoption_applications (
+        application_id, pet_id, user_id, applicant_name, applicant_email, applicant_phone,
+        applicant_address, housing_type, has_yard, has_children, pet_experience, other_pets, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')`,
+      [
+        appId,
+        app.petId,
+        app.userId || 'USR-001',
+        app.applicantName,
+        app.applicantEmail,
+        app.applicantPhone || '',
+        app.applicantAddress || '',
+        app.housingType || 'Apartment / Condo',
+        app.hasYard ? 1 : 0,
+        app.hasChildren ? 1 : 0,
+        app.petExperience || '',
+        app.otherPets || '',
+      ]
+    );
+
+    return {
+      applicationId: appId,
+      petId: app.petId!,
+      userId: app.userId || 'USR-001',
+      applicantName: app.applicantName!,
+      applicantEmail: app.applicantEmail!,
+      applicantPhone: app.applicantPhone || '',
+      applicantAddress: app.applicantAddress || '',
+      housingType: app.housingType || 'Apartment / Condo',
+      hasYard: Boolean(app.hasYard),
+      status: 'Pending',
+      submittedAt: new Date().toISOString(),
+    };
+  },
+
+  async updateApplicationStatus(appId: string, status: 'Approved' | 'Rejected', adminNotes?: string): Promise<boolean> {
+    const pool = getMySqlPool();
+    const [res] = await pool.query<ResultSetHeader>(
+      `UPDATE adoption_applications SET status = ?, admin_notes = ?, reviewed_at = CURRENT_TIMESTAMP WHERE application_id = ?`,
+      [status, adminNotes || '', appId]
+    );
+
+    // If approved, update pet status to Adopted!
+    if (status === 'Approved') {
+      const [appRows] = await pool.query<RowDataPacket[]>('SELECT pet_id FROM adoption_applications WHERE application_id = ?', [appId]);
+      if (appRows.length > 0) {
+        await pool.query('UPDATE pets SET adoption_status = "Adopted" WHERE pet_id = ?', [appRows[0].pet_id]);
+      }
+    }
+
+    return res.affectedRows > 0;
+  },
+
+  // Care logs
+  async getCareLogs(petId?: string): Promise<CareLog[]> {
+    const pool = getMySqlPool();
+    let query = 'SELECT c.*, p.name AS pet_name FROM care_logs c LEFT JOIN pets p ON c.pet_id = p.pet_id';
+    const params: any[] = [];
+    if (petId) {
+      query += ' WHERE c.pet_id = ?';
+      params.push(petId);
+    }
+    query += ' ORDER BY c.created_at DESC';
+
+    const [rows] = await pool.query<RowDataPacket[]>(query, params);
+    return (rows as any[]).map((r) => ({
+      logId: r.log_id,
+      petId: r.pet_id,
+      userId: r.user_id,
+      authorName: r.author_name,
+      logDate: r.log_date,
+      note: r.notes,
+      notes: r.notes,
+      imageUrl: r.image_url || '',
+      healthUpdate: r.health_update || '',
+      mood: r.mood || 'Khỏe mạnh',
+      petName: r.pet_name,
+    }));
+  },
+
+  async createCareLog(log: Partial<CareLog>): Promise<CareLog> {
+    const pool = getMySqlPool();
+    const logId = `LOG-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO care_logs (log_id, pet_id, user_id, author_name, log_date, notes, image_url, health_update, mood)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        logId,
+        log.petId,
+        log.userId || 'USR-001',
+        log.authorName || 'Người nhận nuôi',
+        log.logDate || new Date().toISOString().split('T')[0],
+        log.note || log.notes || '',
+        log.imageUrl || '',
+        log.healthUpdate || '',
+        log.mood || 'Vui vẻ & Tăng động',
+      ]
+    );
+
+    return {
+      logId,
+      petId: log.petId!,
+      userId: log.userId || 'USR-001',
+      authorName: log.authorName || 'Người nhận nuôi',
+      logDate: log.logDate || new Date().toISOString().split('T')[0],
+      note: log.note || log.notes || '',
+      notes: log.note || log.notes || '',
+      imageUrl: log.imageUrl || '',
+      healthUpdate: log.healthUpdate || '',
+      mood: log.mood || 'Khỏe mạnh',
+    };
   },
 
   // Donations
   async getDonations(): Promise<Donation[]> {
     const pool = getMySqlPool();
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM donations ORDER BY date DESC');
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM donations ORDER BY created_at DESC');
     return (rows as any[]).map((r) => ({
       donationId: r.donation_id,
+      userId: r.user_id,
       donorName: r.donor_name,
+      donorEmail: r.donor_email,
       amount: Number(r.amount),
       date: r.date,
-      target: r.target,
+      target: r.target || 'Quỹ y tế & thức ăn cho thú cưng',
       message: r.message || '',
-      paymentMethod: r.payment_method || 'Transfer',
+      paymentMethod: r.payment_method || 'Chuyển khoản',
     }));
   },
 
-  // Care logs
-  async getCareLogs(): Promise<CareLog[]> {
+  async createDonation(data: Partial<Donation>): Promise<Donation> {
     const pool = getMySqlPool();
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM care_logs ORDER BY log_date DESC');
+    const donationId = `DON-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO donations (donation_id, user_id, donor_name, donor_email, amount, date, target, message, payment_method)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        donationId,
+        data.userId || null,
+        data.donorName || 'Nhà hảo tâm',
+        data.donorEmail || '',
+        data.amount || 100000,
+        data.date || new Date().toISOString().split('T')[0],
+        data.target || 'Quỹ cứu trợ PawFund',
+        data.message || '',
+        data.paymentMethod || 'VietQR',
+      ]
+    );
+
+    return {
+      donationId,
+      userId: data.userId,
+      donorName: data.donorName || 'Nhà hảo tâm',
+      donorEmail: data.donorEmail,
+      amount: data.amount || 100000,
+      date: data.date || new Date().toISOString().split('T')[0],
+      target: data.target || 'Quỹ cứu trợ PawFund',
+      message: data.message || '',
+      paymentMethod: data.paymentMethod || 'VietQR',
+    };
+  },
+
+  // In-App Notifications
+  async getNotifications(userIdOrEmail?: string): Promise<InAppNotification[]> {
+    const pool = getMySqlPool();
+    let query = 'SELECT * FROM in_app_notifications';
+    const params: any[] = [];
+    if (userIdOrEmail) {
+      query += ' WHERE user_id = ? OR recipient_email = ?';
+      params.push(userIdOrEmail, userIdOrEmail);
+    }
+    query += ' ORDER BY created_at DESC LIMIT 50';
+
+    const [rows] = await pool.query<RowDataPacket[]>(query, params);
     return (rows as any[]).map((r) => ({
-      logId: r.log_id,
-      petId: r.pet_id,
-      staffName: r.staff_name,
-      logDate: r.log_date,
-      category: r.category,
-      notes: r.notes,
+      notificationId: r.notification_id,
+      userId: r.user_id,
+      recipientEmail: r.recipient_email,
+      title: r.title,
+      message: r.message,
+      type: r.type,
+      isRead: Boolean(r.is_read),
+      link: r.link,
+      createdAt: r.created_at,
     }));
+  },
+
+  async createNotification(notif: Partial<InAppNotification>): Promise<InAppNotification> {
+    const pool = getMySqlPool();
+    const id = `NOTIF-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO in_app_notifications (notification_id, user_id, recipient_email, title, message, type, is_read, link)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?)`,
+      [
+        id,
+        notif.userId || null,
+        notif.recipientEmail || null,
+        notif.title || 'Thông báo mới',
+        notif.message || '',
+        notif.type || 'system',
+        notif.link || '',
+      ]
+    );
+    return {
+      notificationId: id,
+      userId: notif.userId,
+      recipientEmail: notif.recipientEmail,
+      title: notif.title || 'Thông báo mới',
+      message: notif.message || '',
+      type: (notif.type as any) || 'system',
+      isRead: false,
+      link: notif.link,
+      createdAt: new Date().toISOString(),
+    };
+  },
+
+  async markNotificationRead(id: string): Promise<boolean> {
+    const pool = getMySqlPool();
+    const [res] = await pool.query<ResultSetHeader>(
+      'UPDATE in_app_notifications SET is_read = 1 WHERE notification_id = ?',
+      [id]
+    );
+    return res.affectedRows > 0;
   },
 
   // Users
   async getUsers(): Promise<User[]> {
     const pool = getMySqlPool();
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users ORDER BY full_name ASC');
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users ORDER BY created_at ASC');
     return (rows as any[]).map((r) => ({
       userId: r.user_id,
       username: r.username,
@@ -708,9 +995,64 @@ export const MySqlService = {
       phone: r.phone || '',
       address: r.address || '',
       role: r.role,
-      avatarUrl: r.avatar_url || '',
+      avatarUrl: r.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
       createdAt: r.created_at,
     }));
+  },
+
+  async getUserByEmailOrUsername(identifier: string): Promise<any | null> {
+    const pool = getMySqlPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
+      [identifier, identifier]
+    );
+    if (rows.length === 0) return null;
+    return rows[0];
+  },
+
+  async createUser(data: {
+    fullName: string;
+    email: string;
+    passwordHash: string;
+    phone?: string;
+    address?: string;
+    role?: 'Adopter' | 'Admin';
+  }): Promise<User> {
+    const pool = getMySqlPool();
+    const userId = `USR-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO users (user_id, username, full_name, email, password_hash, phone, address, role, avatar_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        data.email.split('@')[0],
+        data.fullName,
+        data.email,
+        data.passwordHash,
+        data.phone || '',
+        data.address || '',
+        data.role || 'Adopter',
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+      ]
+    );
+
+    return {
+      userId,
+      username: data.email.split('@')[0],
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone || '',
+      address: data.address || '',
+      role: data.role || 'Adopter',
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+      createdAt: new Date().toISOString(),
+    };
+  },
+
+  async updateUserAvatar(userId: string, avatarUrl: string): Promise<boolean> {
+    const pool = getMySqlPool();
+    const [res] = await pool.query<any>('UPDATE users SET avatar_url = ? WHERE user_id = ?', [avatarUrl, userId]);
+    return res.affectedRows > 0;
   },
 };
 
