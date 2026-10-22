@@ -124,12 +124,16 @@ CREATE TABLE IF NOT EXISTS adoption_applications (
 
 -- 7. BẢNG NHẬT KÝ CHĂM SÓC (CARE_LOGS)
 CREATE TABLE IF NOT EXISTS care_logs (
-  log_id VARCHAR(20) PRIMARY KEY,
-  pet_id VARCHAR(20) NOT NULL,
-  staff_name VARCHAR(100) NOT NULL,
+  log_id VARCHAR(50) PRIMARY KEY,
+  pet_id VARCHAR(50) NOT NULL,
+  user_id VARCHAR(50),
+  author_name VARCHAR(100) NOT NULL DEFAULT '',
   log_date VARCHAR(30) NOT NULL,
-  category VARCHAR(50) NOT NULL,
   notes TEXT NOT NULL,
+  image_url LONGTEXT,
+  health_update TEXT,
+  mood VARCHAR(50),
+  weight_kg DECIMAL(6,2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_carelogs_pet (pet_id),
   CONSTRAINT fk_carelogs_pet FOREIGN KEY (pet_id) REFERENCES pets(pet_id) ON DELETE CASCADE ON UPDATE CASCADE

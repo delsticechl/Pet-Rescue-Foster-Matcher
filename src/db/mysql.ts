@@ -1,4 +1,4 @@
-import mysql, { Pool, PoolOptions, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+﻿import mysql, { Pool, PoolOptions, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import dotenv from 'dotenv';
 import {
   Pet,
@@ -119,20 +119,27 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
   const cfg = configToTest ? { ...currentConfig, ...configToTest } : currentConfig;
   const startTime = Date.now();
 
-  let tempPool: Pool | null = null;
+  let testPool: Pool | null = null;
+  let isTemp = false;
   try {
-    const poolOptions: PoolOptions = {
-      host: cfg.host,
-      port: cfg.port,
-      user: cfg.user,
-      password: cfg.password,
-      database: cfg.database,
-      multipleStatements: true,
-      connectTimeout: 4000,
-    };
+    if (configToTest) {
+      testPool = mysql.createPool({
+        host: cfg.host,
+        port: cfg.port,
+        user: cfg.user,
+        password: cfg.password,
+        database: cfg.database,
+        multipleStatements: true,
+        connectTimeout: 4000,
+      });
+      isTemp = true;
+    } else {
+      // Reuse the shared pool (creates it if not yet created) - NO tempPool that gets closed!
+      testPool = getMySqlPool();
+      isTemp = false;
+    }
 
-    tempPool = mysql.createPool(poolOptions);
-    const connection = await tempPool.getConnection();
+    const connection = await testPool.getConnection();
     const latency = Date.now() - startTime;
 
     const [verRows] = await connection.query<RowDataPacket[]>('SELECT VERSION() AS version');
@@ -145,9 +152,6 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
     const tablesCount = tblRows[0]?.total || 0;
 
     connection.release();
-    if (tempPool !== activePool) {
-      await tempPool.end().catch(() => {});
-    }
 
     connectionStatus = {
       isConnected: true,
@@ -158,13 +162,13 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
       error: null,
     };
 
-    if (!configToTest) {
-      activePool = tempPool;
+    if (isTemp && testPool) {
+      await testPool.end().catch(() => {});
     }
 
     return {
       success: true,
-      message: `Kết nối MySQL thành công! Phiên bản: ${version}`,
+      message: `Ket noi MySQL thanh cong! Phien ban: ${version}`,
       host: cfg.host,
       port: cfg.port,
       database: cfg.database,
@@ -173,8 +177,8 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
       tablesCount,
     };
   } catch (err: any) {
-    if (tempPool && tempPool !== activePool) {
-      await tempPool.end().catch(() => {});
+    if (isTemp && testPool) {
+      await testPool.end().catch(() => {});
     }
 
     const errMsg = err.message || String(err);
@@ -186,7 +190,7 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
 
     return {
       success: false,
-      message: `Lỗi kết nối MySQL: ${errMsg}`,
+      message: `Loi ket noi MySQL: ${errMsg}`,
       host: cfg.host,
       port: cfg.port,
       database: cfg.database,
@@ -218,7 +222,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone VARCHAR(20),
   address VARCHAR(255),
   role ENUM('Adopter', 'RescueStaff', 'Admin') NOT NULL DEFAULT 'Adopter',
-  avatar_url TEXT,
+  avatar_url LONGTEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -358,12 +362,68 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
       await pool.query(sql);
     }
 
+    // ── Schema Migrations ─────────────────────────────────────────────────────
+    // Migration 1: rename legacy `staff_name` -> `author_name` in care_logs,
+    //              or add `author_name` if both columns are absent.
+    try {
+      const [staffCols] = await pool.query<RowDataPacket[]>(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'care_logs' AND COLUMN_NAME = 'staff_name'`,
+        [currentConfig.database]
+      );
+      const [authorCols] = await pool.query<RowDataPacket[]>(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'care_logs' AND COLUMN_NAME = 'author_name'`,
+        [currentConfig.database]
+      );
+      if ((staffCols as any[]).length > 0 && (authorCols as any[]).length === 0) {
+        // Rename old staff_name -> author_name
+        await pool.query(
+          `ALTER TABLE care_logs CHANGE COLUMN staff_name author_name VARCHAR(100) NOT NULL DEFAULT ''`
+        );
+        console.log('✅ Migrated care_logs.staff_name -> author_name');
+      } else if ((staffCols as any[]).length === 0 && (authorCols as any[]).length === 0) {
+        // Neither column exists — add author_name
+        await pool.query(
+          `ALTER TABLE care_logs ADD COLUMN author_name VARCHAR(100) NOT NULL DEFAULT ''`
+        );
+        console.log('✅ Added missing column care_logs.author_name');
+      }
+    } catch (migErr: any) {
+      console.warn('⚠️ care_logs author_name migration skipped:', migErr.message);
+    }
+
+    // Migration 2: add optional columns missing from old care_logs schema
+    const careLogExtraColumns: Record<string, string> = {
+      user_id: 'VARCHAR(50)',
+      image_url: 'LONGTEXT',
+      health_update: 'TEXT',
+      mood: 'VARCHAR(50)',
+      weight_kg: 'DECIMAL(6,2)',
+    };
+    for (const [col, colDef] of Object.entries(careLogExtraColumns)) {
+      try {
+        const [existing] = await pool.query<RowDataPacket[]>(
+          `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+           WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'care_logs' AND COLUMN_NAME = ?`,
+          [currentConfig.database, col]
+        );
+        if ((existing as any[]).length === 0) {
+          await pool.query(`ALTER TABLE care_logs ADD COLUMN ${col} ${colDef}`);
+          console.log(`✅ Added missing column care_logs.${col}`);
+        }
+      } catch (colErr: any) {
+        console.warn(`⚠️ Could not add care_logs.${col}:`, colErr.message);
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Seed ONLY AdminStaff user if users table is empty
     const [uRows] = await pool.query<RowDataPacket[]>('SELECT COUNT(*) AS total FROM users');
     if ((uRows[0]?.total || 0) === 0) {
       await pool.query(
         `INSERT INTO users (user_id, username, full_name, email, password_hash, phone, address, role, avatar_url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           'USR-ADMIN',
           'AdminStaff',
@@ -371,7 +431,7 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
           'adminstaff@pawfund.org',
           'adminstaff123@', // Plain/hash for AdminStaff
           '0988776655',
-          'Văn Phòng Cứu Hộ PawFund Toàn Quốc',
+          'VÄƒn PhÃ²ng Cá»©u Há»™ PawFund ToÃ n Quá»‘c',
           'Admin',
           'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         ]
@@ -386,8 +446,8 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           'SHL-01',
-          'Trạm Cứu Hộ Động Vật PawFund',
-          '264 Âu Cơ, P. Nhật Tân, Q. Tây Hồ, Hà Nội',
+          'Tráº¡m Cá»©u Há»™ Äá»™ng Váº­t PawFund',
+          '264 Ã‚u CÆ¡, P. Nháº­t TÃ¢n, Q. TÃ¢y Há»“, HÃ  Ná»™i',
           '0903112233',
           'contact@pawfund.org',
           'USR-ADMIN',
@@ -408,13 +468,13 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
 
     return {
       success: true,
-      message: `Khởi tạo Schema MySQL thành công! Đã tạo ${tables.length} bảng dữ liệu.`,
+      message: `Khá»Ÿi táº¡o Schema MySQL thÃ nh cÃ´ng! ÄÃ£ táº¡o ${tables.length} báº£ng dá»¯ liá»‡u.`,
       tablesCreated: tables,
     };
   } catch (err: any) {
     return {
       success: false,
-      message: `Lỗi khi tạo Schema MySQL: ${err.message || String(err)}`,
+      message: `Lá»—i khi táº¡o Schema MySQL: ${err.message || String(err)}`,
     };
   }
 }
@@ -615,7 +675,7 @@ export const MySqlService = {
           initialMedicalRecord.medicalDate || new Date().toISOString().split('T')[0],
           initialMedicalRecord.diagnosis,
           initialMedicalRecord.treatment,
-          initialMedicalRecord.vetName || 'Bác sĩ thú y PawFund',
+          initialMedicalRecord.vetName || 'BÃ¡c sÄ© thÃº y PawFund',
           initialMedicalRecord.medications || '',
         ]
       );
@@ -625,7 +685,7 @@ export const MySqlService = {
         medicalDate: initialMedicalRecord.medicalDate || new Date().toISOString().split('T')[0],
         diagnosis: initialMedicalRecord.diagnosis,
         treatment: initialMedicalRecord.treatment,
-        vetName: initialMedicalRecord.vetName || 'Bác sĩ thú y PawFund',
+        vetName: initialMedicalRecord.vetName || 'BÃ¡c sÄ© thÃº y PawFund',
         medications: initialMedicalRecord.medications || '',
       });
     }
@@ -686,7 +746,7 @@ export const MySqlService = {
         record.medicalDate || new Date().toISOString().split('T')[0],
         record.diagnosis || '',
         record.treatment || '',
-        record.vetName || 'Bác sĩ PawFund',
+        record.vetName || 'BÃ¡c sÄ© PawFund',
         record.medications || '',
       ]
     );
@@ -696,7 +756,7 @@ export const MySqlService = {
       medicalDate: record.medicalDate || new Date().toISOString().split('T')[0],
       diagnosis: record.diagnosis || '',
       treatment: record.treatment || '',
-      vetName: record.vetName || 'Bác sĩ PawFund',
+      vetName: record.vetName || 'BÃ¡c sÄ© PawFund',
       medications: record.medications || '',
     };
   },
@@ -715,7 +775,7 @@ export const MySqlService = {
       capacity: r.capacity,
       currentPetsCount: r.current_occupancy || 0,
       rating: 5.0,
-      description: r.description || 'Trạm cứu hộ PawFund tiếp nhận và chăm sóc thú cưng.',
+      description: r.description || 'Tráº¡m cá»©u há»™ PawFund tiáº¿p nháº­n vÃ  chÄƒm sÃ³c thÃº cÆ°ng.',
       bankAccount: r.bank_account || '',
       bankName: r.bank_name || '',
       imageUrl: r.image_url || 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=600&q=80',
@@ -833,7 +893,8 @@ export const MySqlService = {
       notes: r.notes,
       imageUrl: r.image_url || '',
       healthUpdate: r.health_update || '',
-      mood: r.mood || 'Khỏe mạnh',
+      mood: r.mood || 'Khá»e máº¡nh',
+      weightKg: r.weight_kg != null ? Number(r.weight_kg) : undefined,
       petName: r.pet_name,
     }));
   },
@@ -842,18 +903,19 @@ export const MySqlService = {
     const pool = getMySqlPool();
     const logId = `LOG-${Date.now()}`;
     await pool.query(
-      `INSERT INTO care_logs (log_id, pet_id, user_id, author_name, log_date, notes, image_url, health_update, mood)
+      `INSERT INTO care_logs (log_id, pet_id, user_id, author_name, log_date, notes, image_url, health_update, mood, weight_kg)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         logId,
         log.petId,
         log.userId || 'USR-001',
-        log.authorName || 'Người nhận nuôi',
+        log.authorName || 'NgÆ°á»i nháº­n nuÃ´i',
         log.logDate || new Date().toISOString().split('T')[0],
         log.note || log.notes || '',
         log.imageUrl || '',
         log.healthUpdate || '',
-        log.mood || 'Vui vẻ & Tăng động',
+        log.mood || 'Vui váº» & TÄƒng Ä‘á»™ng',
+        log.weightKg ?? null,
       ]
     );
 
@@ -861,13 +923,14 @@ export const MySqlService = {
       logId,
       petId: log.petId!,
       userId: log.userId || 'USR-001',
-      authorName: log.authorName || 'Người nhận nuôi',
+      authorName: log.authorName || 'NgÆ°á»i nháº­n nuÃ´i',
       logDate: log.logDate || new Date().toISOString().split('T')[0],
       note: log.note || log.notes || '',
       notes: log.note || log.notes || '',
       imageUrl: log.imageUrl || '',
       healthUpdate: log.healthUpdate || '',
-      mood: log.mood || 'Khỏe mạnh',
+      weightKg: log.weightKg ?? undefined,
+      mood: log.mood || 'Khá»e máº¡nh',
     };
   },
 
@@ -882,9 +945,9 @@ export const MySqlService = {
       donorEmail: r.donor_email,
       amount: Number(r.amount),
       date: r.date,
-      target: r.target || 'Quỹ y tế & thức ăn cho thú cưng',
+      target: r.target || 'Quá»¹ y táº¿ & thá»©c Äƒn cho thÃº cÆ°ng',
       message: r.message || '',
-      paymentMethod: r.payment_method || 'Chuyển khoản',
+      paymentMethod: r.payment_method || 'Chuyá»ƒn khoáº£n',
     }));
   },
 
@@ -897,11 +960,11 @@ export const MySqlService = {
       [
         donationId,
         data.userId || null,
-        data.donorName || 'Nhà hảo tâm',
+        data.donorName || 'NhÃ  háº£o tÃ¢m',
         data.donorEmail || '',
         data.amount || 100000,
         data.date || new Date().toISOString().split('T')[0],
-        data.target || 'Quỹ cứu trợ PawFund',
+        data.target || 'Quá»¹ cá»©u trá»£ PawFund',
         data.message || '',
         data.paymentMethod || 'VietQR',
       ]
@@ -910,11 +973,11 @@ export const MySqlService = {
     return {
       donationId,
       userId: data.userId,
-      donorName: data.donorName || 'Nhà hảo tâm',
+      donorName: data.donorName || 'NhÃ  háº£o tÃ¢m',
       donorEmail: data.donorEmail,
       amount: data.amount || 100000,
       date: data.date || new Date().toISOString().split('T')[0],
-      target: data.target || 'Quỹ cứu trợ PawFund',
+      target: data.target || 'Quá»¹ cá»©u trá»£ PawFund',
       message: data.message || '',
       paymentMethod: data.paymentMethod || 'VietQR',
     };
@@ -955,7 +1018,7 @@ export const MySqlService = {
         id,
         notif.userId || null,
         notif.recipientEmail || null,
-        notif.title || 'Thông báo mới',
+        notif.title || 'ThÃ´ng bÃ¡o má»›i',
         notif.message || '',
         notif.type || 'system',
         notif.link || '',
@@ -965,7 +1028,7 @@ export const MySqlService = {
       notificationId: id,
       userId: notif.userId,
       recipientEmail: notif.recipientEmail,
-      title: notif.title || 'Thông báo mới',
+      title: notif.title || 'ThÃ´ng bÃ¡o má»›i',
       message: notif.message || '',
       type: (notif.type as any) || 'system',
       isRead: false,

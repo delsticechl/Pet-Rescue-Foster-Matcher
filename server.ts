@@ -1133,7 +1133,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
   });
 
   app.post('/api/care-logs', async (req, res) => {
-    const { petId, authorName, logDate, notes, note, imageUrl, healthUpdate, mood } = req.body;
+    const { petId, userId, authorName, logDate, notes, note, imageUrl, healthUpdate, mood, weightKg } = req.body;
 
     if (!petId || (!notes && !note)) {
       return res.status(400).json({ error: 'Vui lòng chọn thú cưng và nhập nội dung nhật ký chăm sóc' });
@@ -1148,6 +1148,8 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
       imageUrl: imageUrl || '',
       healthUpdate: healthUpdate || 'Khỏe mạnh, thích nghi tốt',
       mood: mood || 'Vui vẻ & Tăng động',
+      userId: userId || undefined,
+      weightKg: weightKg != null ? Number(weightKg) : undefined,
     };
 
     try {
