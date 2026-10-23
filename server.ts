@@ -1265,15 +1265,35 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
   // ==========================================
   // 7. DONATIONS & REAL CONFIRMATION NOTIFICATION
   // ==========================================
-  app.get('/api/donations', async (_req, res) => {
+  app.get('/api/donations', async (req, res) => {
+    const { userId, email } = req.query as Record<string, string | undefined>;
     try {
+      let dons: Donation[];
       if (isMySqlLive) {
-        const dons = await MySqlService.getDonations();
-        return res.json(dons);
+        dons = await MySqlService.getDonations();
+      } else {
+        dons = memoryDonations;
       }
-      return res.json(memoryDonations);
+      // Filter by the requesting user when query params are provided
+      if (userId || email) {
+        dons = dons.filter((d) => {
+          if (userId && d.userId === userId) return true;
+          if (email && d.donorEmail && d.donorEmail.toLowerCase() === email.toLowerCase()) return true;
+          return false;
+        });
+      }
+      return res.json(dons);
     } catch (err: any) {
-      return res.json(memoryDonations);
+      // Fallback to memory store filtered the same way
+      let dons = memoryDonations as Donation[];
+      if (userId || email) {
+        dons = dons.filter((d) => {
+          if (userId && d.userId === userId) return true;
+          if (email && d.donorEmail && d.donorEmail.toLowerCase() === email.toLowerCase()) return true;
+          return false;
+        });
+      }
+      return res.json(dons);
     }
   });
 
