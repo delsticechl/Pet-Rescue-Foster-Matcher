@@ -84,10 +84,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
   const loadAdopterData = async () => {
     setLoading(true);
     try {
-      const [allApps, allLogs, allDonations, notifs] = await Promise.all([
+      const [allApps, allLogs, myDonations, notifs] = await Promise.all([
         api.getApplications().catch(() => []),
         api.getCareLogs().catch(() => []),
-        api.getDonations().catch(() => []),
+        api.getDonations({ userId: currentUser.userId, email: currentUser.email }).catch(() => []),
         api.getNotifications(currentUser.email).catch(() => []),
       ]);
 
@@ -105,13 +105,6 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
         (log) =>
           log.userId === myUserId ||
           (log.adopterName && log.adopterName.toLowerCase() === currentUser.fullName.toLowerCase())
-      );
-
-      const myDonations = allDonations.filter(
-        (d) =>
-          (d.donorEmail && d.donorEmail.toLowerCase() === myEmail) ||
-          d.userId === myUserId ||
-          (d.donorName && d.donorName.toLowerCase() === currentUser.fullName.toLowerCase())
       );
 
       setApplications(myApps);
@@ -884,11 +877,11 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                         <span>Phương thức: {d.paymentMethod || 'Chuyển khoản'}</span>
                         <span>•</span>
                         <span>Ngày: {d.donatedAt || d.date || 'Gần đây'}</span>
-                        {d.shelterName && (
+                        {(d.shelterName || d.target) && (
                           <>
                             <span>•</span>
                             <span className="font-medium text-sky-600 dark:text-sky-400">
-                              {d.shelterName}
+                              {d.shelterName || d.target}
                             </span>
                           </>
                         )}
