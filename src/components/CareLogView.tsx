@@ -1,3 +1,4 @@
+import { readImageAsDataUrl } from '../utils/imageResize';
 import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Plus, Calendar, Scale, Smile, Image as ImageIcon, Heart, CheckCircle2, X, Search, RotateCcw, Upload, Check } from 'lucide-react';
 import { CareLog, User, Pet } from '../types';
@@ -56,15 +57,9 @@ export const CareLogView: React.FC<CareLogViewProps> = ({ currentUser, pets }) =
       alert('Please upload an image file (PNG, JPG, JPEG, WEBP, GIF)');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({
-        ...prev,
-        imageUrl: reader.result as string,
-        fileName: file.name,
-      }));
-    };
-    reader.readAsDataURL(file);
+    readImageAsDataUrl(file, 1280, 0.85)
+      .then((dataUrl) => setFormData((prev) => ({ ...prev, imageUrl: dataUrl, fileName: file.name })))
+      .catch(() => alert('Cannot read this image file'));
   };
 
   const filteredLogs = logs.filter((log) => {

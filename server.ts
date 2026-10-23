@@ -450,7 +450,10 @@ async function startServer() {
       }
 
       if (isMySqlLive) {
-        await MySqlService.updateUserAvatar(userId, avatarUrl);
+        const updated = await MySqlService.updateUserAvatar(userId, avatarUrl);
+        if (!updated && !memUser) {
+          return res.status(404).json({ error: 'Không tìm thấy tài khoản trong cơ sở dữ liệu.' });
+        }
       }
 
       // Broadcast WebSocket event
@@ -465,7 +468,7 @@ async function startServer() {
         user: memUser || { userId, avatarUrl },
       });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message || 'Error updating avatar' });
+      return res.status(500).json({ error: friendlyDbError(err) });
     }
   });
 
@@ -659,7 +662,8 @@ async function startServer() {
         return res.status(201).json(petData);
       }
     } catch (err: any) {
-      return res.status(500).json({ error: err.message || 'Lỗi khi lưu thú cưng mới' });
+      console.error('POST /api/pets failed:', err);
+      return res.status(500).json({ error: friendlyDbError(err) });
     }
   });
 

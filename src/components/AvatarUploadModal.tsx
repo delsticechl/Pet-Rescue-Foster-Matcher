@@ -1,3 +1,4 @@
+import { readImageAsDataUrl } from '../utils/imageResize';
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, Check, Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react';
 import { User } from '../types';
@@ -49,11 +50,9 @@ export const AvatarUploadModal: React.FC<AvatarUploadModalProps> = ({
     setError(null);
     setSelectedFile(file);
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    readImageAsDataUrl(file, 512, 0.88)
+      .then((dataUrl) => setPreviewUrl(dataUrl))
+      .catch(() => setError('Could not read this image. Please try another file.'));
   };
 
   const handleDragOver = (e: React.DragEvent) => {

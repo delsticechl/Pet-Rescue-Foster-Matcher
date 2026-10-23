@@ -95,9 +95,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
+    readImageAsDataUrl(file, 1280, 0.85).then((dataUrl) => {
       if (target === 'add') {
         setNewPet((prev) => ({
           ...prev,
@@ -115,11 +113,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
           mimeType: file.type,
         }));
       }
-    };
-    reader.onerror = () => {
+    }).catch(() => {
       alert('Không thể đọc file ảnh từ thiết bị của bạn');
-    };
-    reader.readAsDataURL(file);
+    });
   };
 
   const filteredPets = pets.filter((p) => {

@@ -1,3 +1,4 @@
+import { readImageAsDataUrl } from '../utils/imageResize';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   UserCheck,
@@ -176,15 +177,9 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCareLogForm((prev) => ({
-        ...prev,
-        imageUrl: reader.result as string,
-        fileName: file.name,
-      }));
-    };
-    reader.readAsDataURL(file);
+    readImageAsDataUrl(file, 1280, 0.85)
+      .then((dataUrl) => setCareLogForm((prev) => ({ ...prev, imageUrl: dataUrl, fileName: file.name })))
+      .catch(() => alert('Không thể đọc file ảnh'));
   };
 
   const openLogModalForPet = (pet: Pet) => {

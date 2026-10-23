@@ -537,6 +537,44 @@ function genId(prefix: string): string {
   return `${prefix}-${Date.now()}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
 }
 
+/**
+ * Returns a shelter_id guaranteed to exist (pets.shelter_id has a foreign key).
+ * Uses the requested one if present, else the first shelter, else creates a default.
+ */
+async function ensureShelterId(requested?: string): Promise<string> {
+  const pool = getMySqlPool();
+  if (requested) {
+    const [r] = await pool.query<RowDataPacket[]>('SELECT shelter_id FROM shelters WHERE shelter_id = ? LIMIT 1', [requested]);
+    if (r.length > 0) return requested;
+  }
+  const [any] = await pool.query<RowDataPacket[]>('SELECT shelter_id FROM shelters ORDER BY created_at ASC LIMIT 1');
+  if (any.length > 0) return any[0].shelter_id;
+
+  // No shelters at all: need a manager user to satisfy shelters.manager_id FK
+  let managerId: string | undefined;
+  const [admins] = await pool.query<RowDataPacket[]>("SELECT user_id FROM users WHERE role IN ('Admin','RescueStaff') LIMIT 1");
+  if (admins.length > 0) {
+    managerId = admins[0].user_id;
+  } else {
+    const [anyUser] = await pool.query<RowDataPacket[]>('SELECT user_id FROM users LIMIT 1');
+    if (anyUser.length > 0) managerId = anyUser[0].user_id;
+  }
+  if (!managerId) {
+    managerId = 'USR-ADMIN';
+    await pool.query(
+      `INSERT INTO users (user_id, username, full_name, email, password_hash, phone, address, role, avatar_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [managerId, 'AdminStaff', 'AdminStaff', 'adminstaff@pawfund.org', 'adminstaff123@', '0988776655', 'Văn Phòng Cứu Hộ PawFund', 'Admin', '']
+    );
+  }
+  await pool.query(
+    `INSERT INTO shelters (shelter_id, shelter_name, address, phone, email, manager_id, capacity, current_occupancy, bank_account, bank_name, image_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ['SHL-01', 'Trạm Cứu Hộ Động Vật PawFund', '264 Âu Cơ, P. Nhật Tân, Q. Tây Hồ, Hà Nội', '0903112233', 'contact@pawfund.org', managerId, 60, 0, '19034567890011', 'Techcombank - PawFund Rescue Fund', '']
+  );
+  return 'SHL-01';
+}
+
 export const MySqlService = {
   test: testMySqlConnection,
   getStatus: getMySqlStatus,
@@ -678,6 +716,8 @@ export const MySqlService = {
     initialMedicalRecord?: Partial<PetMedicalRecord>
   ): Promise<Pet> {
     const pool = getMySqlPool();
+    const shelterId = await ensureShelterId(pet.shelterId);
+    pet = { ...pet, shelterId };
     await pool.query(
       `INSERT INTO pets (
         pet_id, name, species, breed, age_months, gender, health_status,
@@ -700,13 +740,14 @@ export const MySqlService = {
         pet.goodWithKids ? 1 : 0,
         pet.goodWithPets ? 1 : 0,
         pet.description || '',
-        pet.shelterId || 'SHL-01',
+        shelterId,
       ]
     );
 
+    try {
     const savedImages: PetImage[] = [];
     if (primaryImage?.imageUrl || pet.imageUrl) {
-      const imgId = `IMG-${Date.now()}`;
+      const imgId = genId('IMG');
       const imgUrl = primaryImage?.imageUrl || pet.imageUrl || '';
       await pool.query(
         `INSERT INTO pet_images (image_id, pet_id, image_url, is_primary, file_name, file_size, mime_type, upload_source)
@@ -723,7 +764,7 @@ export const MySqlService = {
 
     const savedMedical: PetMedicalRecord[] = [];
     if (initialMedicalRecord?.diagnosis && initialMedicalRecord?.treatment) {
-      const recId = `MED-${Date.now()}`;
+      const recId = genId('MED');
       await pool.query(
         `INSERT INTO pet_medical_records (record_id, pet_id, medical_date, diagnosis, treatment, vet_name, medications)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -754,6 +795,11 @@ export const MySqlService = {
       medicalRecords: savedMedical,
       medicalHistory: savedMedical,
     };
+    } catch (err) {
+      // Don't leave a half-created pet behind if the photo / medical insert fails
+      await pool.query('DELETE FROM pets WHERE pet_id = ?', [pet.petId]).catch(() => undefined);
+      throw err;
+    }
   },
 
   async updatePet(id: string, pet: Partial<Pet>): Promise<boolean> {
@@ -775,6 +821,7 @@ export const MySqlService = {
     if (pet.goodWithKids !== undefined) { updates.push('good_with_kids = ?'); values.push(pet.goodWithKids ? 1 : 0); }
     if (pet.goodWithPets !== undefined) { updates.push('good_with_pets = ?'); values.push(pet.goodWithPets ? 1 : 0); }
     if (pet.description !== undefined) { updates.push('description = ?'); values.push(pet.description); }
+    if (pet.shelterId !== undefined) { updates.push('shelter_id = ?'); values.push(await ensureShelterId(pet.shelterId)); }
 
     if (updates.length === 0) return true;
     values.push(id);
