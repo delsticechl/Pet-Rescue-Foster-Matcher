@@ -272,8 +272,13 @@ export const api = {
   },
 
   // DONATIONS
-  async getDonations(): Promise<Donation[]> {
-    const res = await fetch('/api/donations');
+  async getDonations(params?: { userId?: string; email?: string }): Promise<Donation[]> {
+    const query = new URLSearchParams();
+    if (params?.userId) query.set('userId', params.userId);
+    if (params?.email) query.set('email', params.email);
+    const qs = query.toString();
+    const res = await fetch(`/api/donations${qs ? `?${qs}` : ''}`);
+    if (!res.ok) return [];
     return res.json();
   },
 
