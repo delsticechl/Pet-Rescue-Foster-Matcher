@@ -85,6 +85,10 @@ export function getMySqlPool(customConfig?: Partial<MySqlConfig>): Pool {
   }
 
   if (!activePool) {
+    // Enable SSL when connecting to a cloud host (e.g. Aiven, PlanetScale, Railway)
+    // MYSQL_SSL=true in .env activates this. rejectUnauthorized:false skips cert
+    // verification — fine for non-enterprise projects; swap in a CA cert for strict mode.
+    const useSSL = process.env.MYSQL_SSL === 'true' || currentConfig.ssl;
     const poolOptions: PoolOptions = {
       host: currentConfig.host,
       port: currentConfig.port,
@@ -96,7 +100,8 @@ export function getMySqlPool(customConfig?: Partial<MySqlConfig>): Pool {
       queueLimit: currentConfig.queueLimit ?? 0,
       multipleStatements: true,
       dateStrings: true,
-      connectTimeout: 5000,
+      connectTimeout: 10000,
+      ...(useSSL ? { ssl: { rejectUnauthorized: false } } : {}),
     };
 
     activePool = mysql.createPool(poolOptions);
@@ -123,6 +128,7 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
   let isTemp = false;
   try {
     if (configToTest) {
+      const useSSL = process.env.MYSQL_SSL === 'true' || cfg.ssl;
       testPool = mysql.createPool({
         host: cfg.host,
         port: cfg.port,
@@ -130,7 +136,8 @@ export async function testMySqlConnection(configToTest?: Partial<MySqlConfig>): 
         password: cfg.password,
         database: cfg.database,
         multipleStatements: true,
-        connectTimeout: 4000,
+        connectTimeout: 8000,
+        ...(useSSL ? { ssl: { rejectUnauthorized: false } } : {}),
       });
       isTemp = true;
     } else {
