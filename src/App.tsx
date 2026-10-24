@@ -28,12 +28,51 @@ import { useRealtimeSocket } from './hooks/useRealtimeSocket';
 import { realtimeWs } from './services/websocket';
 import confetti from 'canvas-confetti';
 
+type TabKey = 'pets' | 'matchmaker' | 'carelogs' | 'shelters' | 'admin' | 'adopter';
+const VALID_TABS: TabKey[] = ['pets', 'matchmaker', 'carelogs', 'shelters', 'admin', 'adopter'];
+const LS_USER = 'pawfund.session.user';
+const LS_TAB = 'pawfund.session.tab';
+
+// Session helpers: never let storage problems (private mode, quota) break the app
+function loadSavedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(LS_USER);
+    if (!raw) return null;
+    const u = JSON.parse(raw);
+    return u && typeof u.userId === 'string' ? ({ avatarUrl: '', ...u } as User) : null;
+  } catch {
+    return null;
+  }
+}
+function loadSavedTab(): TabKey {
+  try {
+    const t = localStorage.getItem(LS_TAB) as TabKey | null;
+    return t && VALID_TABS.includes(t) ? t : 'pets';
+  } catch {
+    return 'pets';
+  }
+}
+
 export const App: React.FC = () => {
+  // Diagnostics: proves this build is running and shows what was restored (remove when no longer needed)
+  useEffect(() => {
+    try {
+      console.info(
+        '[PawFund session v2] build active | saved user:',
+        localStorage.getItem(LS_USER) ? JSON.parse(localStorage.getItem(LS_USER)!).userId : '(none)',
+        '| saved tab:',
+        localStorage.getItem(LS_TAB) || '(none)'
+      );
+    } catch (e) {
+      console.warn('[PawFund session v2] localStorage is not available:', e);
+    }
+  }, []);
+
   // Global Data State
   const [pets, setPets] = useState<Pet[]>([]);
   const [shelters, setShelters] = useState<Shelter[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState<User | null>(INITIAL_USERS[0] || null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => loadSavedUser() || INITIAL_USERS[0] || null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // MySQL Connection Status
@@ -45,7 +84,7 @@ export const App: React.FC = () => {
   const [isRetryingDb, setIsRetryingDb] = useState(false);
 
   // Navigation & Theme
-  const [activeTab, setActiveTab] = useState<'pets' | 'matchmaker' | 'carelogs' | 'shelters' | 'admin' | 'adopter'>('pets');
+  const [activeTab, setActiveTab] = useState<TabKey>(loadSavedTab);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   // Filters for Catalog
@@ -80,6 +119,29 @@ export const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
+  // Remember who is signed in and which tab is open across reloads.
+  // The avatar is left out (it can be several hundred KB); it is re-fetched on load.
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        const { avatarUrl, ...rest } = currentUser;
+        localStorage.setItem(LS_USER, JSON.stringify(rest));
+      } else {
+        localStorage.removeItem(LS_USER);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_TAB, activeTab);
+    } catch {
+      /* ignore */
+    }
+  }, [activeTab]);
+
   // Ensure Admin tab is only accessible if user has Admin role
   useEffect(() => {
     if (activeTab === 'admin' && currentUser?.role !== 'Admin') {
@@ -101,7 +163,13 @@ export const App: React.FC = () => {
       setShelters(sheltersData);
       setAllUsers(usersData);
       setMySqlStatus(dbStatus as any);
-      if (!currentUser && usersData.length > 0) {
+      // Re-attach the saved session to the fresh record (avatar, role, etc.)
+      const savedId = loadSavedUser()?.userId;
+      const freshUser = savedId ? usersData.find((u: User) => u.userId === savedId) : undefined;
+      console.info('[PawFund session v2] after load: saved id =', savedId || '(none)', '| found in user list =', !!freshUser);
+      if (freshUser) {
+        setCurrentUser(freshUser);
+      } else if (!currentUser && usersData.length > 0) {
         setCurrentUser(usersData[0]);
       }
     } catch (err) {
