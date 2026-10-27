@@ -1,8 +1,75 @@
 @import "tailwindcss";
 
+@theme {
+  /* Tím pastel chính (thay sky) */
+  --color-sky-50:  #f7f4ff;
+  --color-sky-100: #efe8ff;
+  --color-sky-200: #e1d6fd;
+  --color-sky-300: #cdbafa;
+  --color-sky-400: #b498f2;
+  --color-sky-500: #9a78e8;
+  --color-sky-600: #7c55cf;
+  --color-sky-700: #6842b3;
+  --color-sky-800: #543592;
+  --color-sky-900: #432b74;
+  --color-sky-950: #2a1a4a;
+
+  /* indigo */
+  --color-indigo-50:  #f5f3ff;
+  --color-indigo-100: #ece8ff;
+  --color-indigo-200: #ddd5fe;
+  --color-indigo-300: #c4b5fd;
+  --color-indigo-400: #a992f7;
+  --color-indigo-500: #8b6ff0;
+  --color-indigo-600: #7355d9;
+  --color-indigo-700: #5f43bd;
+  --color-indigo-800: #4c3497;
+  --color-indigo-900: #3b2a78;
+  --color-indigo-950: #241a4a;
+
+  /* teal */
+  --color-teal-50:  #fbf5ff;
+  --color-teal-100: #f4e8ff;
+  --color-teal-200: #ead3fd;
+  --color-teal-300: #dab5f9;
+  --color-teal-400: #c795f2;
+  --color-teal-500: #b277e8;
+  --color-teal-600: #9a58d4;
+  --color-teal-700: #8043b6;
+  --color-teal-800: #673693;
+  --color-teal-900: #522c75;
+  --color-teal-950: #331a4a;
+
+  /* blue */
+  --color-blue-50:  #f6f4ff;
+  --color-blue-100: #ebe8ff;
+  --color-blue-200: #dcd6fd;
+  --color-blue-300: #c3baf9;
+  --color-blue-400: #a99af2;
+  --color-blue-500: #917ce8;
+  --color-blue-600: #7a62d3;
+  --color-blue-700: #6549b6;
+  --color-blue-800: #523a94;
+  --color-blue-900: #423076;
+  --color-blue-950: #271c4b;
+
+  /* Xám ánh tím (thay slate) */
+  --color-slate-50:  #f8f7fc;
+  --color-slate-100: #f1eff8;
+  --color-slate-200: #e4e1f0;
+  --color-slate-300: #cfcbe0;
+  --color-slate-400: #a29cbb;
+  --color-slate-500: #7a7496;
+  --color-slate-600: #5c5778;
+  --color-slate-700: #47435f;
+  --color-slate-800: #2f2b44;
+  --color-slate-900: #1f1c30;
+  --color-slate-950: #130f20;
+}
+
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-800 antialiased selection:bg-amber-400 selection:text-slate-900;
+    @apply bg-slate-50 text-slate-800 antialiased selection:bg-sky-300 selection:text-slate-900;
   }
 }
 
@@ -17,14 +84,14 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #cdbafa;
   border-radius: 9999px;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #5c5778;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #b498f2;
 }
