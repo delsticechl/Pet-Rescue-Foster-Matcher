@@ -5,7 +5,7 @@
 export function readImageAsDataUrl(file: File, maxDim = 1280, quality = 0.85): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Không thể đọc file ảnh'));
+    reader.onerror = () => reject(new Error('Unable to read image file'));
     reader.onload = () => {
       const original = reader.result as string;
       // Small GIFs keep their animation

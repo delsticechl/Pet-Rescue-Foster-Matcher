@@ -73,9 +73,9 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
     note: '',
     imageUrl: 'https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=800&q=80',
     fileName: '',
-    healthUpdate: 'Bé ăn ngoan, thích nghi tốt với không gian nhà mới và rất quấn người.',
+    healthUpdate: 'Eating well, adapting wonderfully to home environment, very affectionate.',
     weightKg: 4.5,
-    mood: 'Vui vẻ & Tăng động' as const,
+    mood: 'Playful & Energetic' as any,
   });
   const [submittingLog, setSubmittingLog] = useState(false);
   const [logSuccessMessage, setLogSuccessMessage] = useState<string | null>(null);
@@ -166,13 +166,13 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn tệp hình ảnh hợp lệ (PNG, JPG, WEBP)');
+      alert('Please select a valid image file (PNG, JPG, WEBP)');
       return;
     }
 
     readImageAsDataUrl(file, 1280, 0.85)
       .then((dataUrl) => setCareLogForm((prev) => ({ ...prev, imageUrl: dataUrl, fileName: file.name })))
-      .catch(() => alert('Không thể đọc file ảnh'));
+      .catch(() => alert('Unable to read image file'));
   };
 
   const openLogModalForPet = (pet: Pet) => {
@@ -181,7 +181,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
       ...prev,
       petId: pet.petId,
       fileName: '',
-      note: `Bé ${pet.name} hôm nay rất vui và khỏe mạnh.`,
+      note: `${pet.name} is happy and healthy today.`,
     }));
     setIsAddCareLogOpen(true);
     setLogSuccessMessage(null);
@@ -190,7 +190,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
   const handleSubmitCareLog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!careLogForm.petId || !careLogForm.note) {
-      alert('Vui lòng điền nội dung nhật ký chăm sóc');
+      alert('Please enter your care log message');
       return;
     }
 
@@ -207,7 +207,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
         mood: careLogForm.mood,
       });
 
-      setLogSuccessMessage('Đăng nhật ký chăm sóc thành công! Bài viết đã được lưu vào hệ thống.');
+      setLogSuccessMessage('Care log published successfully! Saved to the system.');
       setTimeout(() => {
         setIsAddCareLogOpen(false);
         setLogSuccessMessage(null);
@@ -216,7 +216,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
       loadAdopterData();
       if (onRefreshData) onRefreshData();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi lưu nhật ký chăm sóc');
+      alert(err.message || 'Error saving care log');
     } finally {
       setSubmittingLog(false);
     }
@@ -250,7 +250,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                   {currentUser.fullName}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-sky-100 backdrop-blur-sm border border-white/10">
-                  Người Nhận Nuôi Thú Cưng
+                  Pet Adopter
                 </span>
               </div>
               <p className="text-sm text-sky-100/90 mt-1 flex flex-wrap items-center gap-4">
@@ -281,14 +281,14 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all backdrop-blur-sm border border-white/20 flex items-center gap-2 shadow-sm"
             >
               <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>AI Ghép Đôi Pet</span>
+              <span>AI Pet Matchmaker</span>
             </button>
             <button
               onClick={() => onNavigateTab('pets')}
               className="px-4 py-2.5 rounded-2xl bg-white text-sky-700 hover:bg-sky-50 font-bold text-xs transition-all shadow-md flex items-center gap-2"
             >
               <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-              <span>Xem Thú Cưng Cần Chủ</span>
+              <span>Browse Adoptable Pets</span>
             </button>
           </div>
         </div>
@@ -297,44 +297,44 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8 pt-6 border-t border-white/10">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-sky-100 font-medium">Bé Cưng Đã Nhận Nuôi</span>
+              <span className="text-xs text-sky-100 font-medium">Adopted Pets</span>
               <Heart className="w-4 h-4 text-rose-300 fill-rose-300" />
             </div>
             <div className="text-2xl font-black mt-2 text-white">{myAdoptedPets.length}</div>
             <div className="text-[11px] text-sky-200 mt-0.5">
-              {myAdoptedPets.length > 0 ? 'Đang hạnh phúc bên gia đình' : 'Chưa có bé nào'}
+              {myAdoptedPets.length > 0 ? 'Thriving in their new home' : 'No adopted pets yet'}
             </div>
           </div>
 
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-sky-100 font-medium">Đơn Xin Nhận Nuôi</span>
+              <span className="text-xs text-sky-100 font-medium">Adoption Applications</span>
               <FileText className="w-4 h-4 text-amber-300" />
             </div>
             <div className="text-2xl font-black mt-2 text-white">{applications.length}</div>
             <div className="text-[11px] text-sky-200 mt-0.5">
-              {pendingAppsCount > 0 ? `${pendingAppsCount} đơn đang xử lý` : `${approvedAppsCount} đơn đã duyệt`}
+              {pendingAppsCount > 0 ? `${pendingAppsCount} pending review` : `${approvedAppsCount} approved`}
             </div>
           </div>
 
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-sky-100 font-medium">Nhật Ký Chăm Sóc (Logs)</span>
+              <span className="text-xs text-sky-100 font-medium">Care Logs</span>
               <BookOpen className="w-4 h-4 text-emerald-300" />
             </div>
             <div className="text-2xl font-black mt-2 text-white">{careLogs.length}</div>
-            <div className="text-[11px] text-sky-200 mt-0.5">Bản tin cập nhật sức khỏe</div>
+            <div className="text-[11px] text-sky-200 mt-0.5">Health & progress updates</div>
           </div>
 
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-sky-100 font-medium">Đã Ủng Hộ Trạm</span>
+              <span className="text-xs text-sky-100 font-medium">Total Donated</span>
               <DollarSign className="w-4 h-4 text-yellow-300" />
             </div>
             <div className="text-2xl font-black mt-2 text-white">
-              {totalDonationAmount.toLocaleString('vi-VN')} đ
+              ${totalDonationAmount.toLocaleString('en-US')}
             </div>
-            <div className="text-[11px] text-sky-200 mt-0.5">{donations.length} lượt đóng góp cứu trợ</div>
+            <div className="text-[11px] text-sky-200 mt-0.5">{donations.length} contributions made</div>
           </div>
         </div>
       </div>
@@ -350,7 +350,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           }`}
         >
           <Heart className="w-4 h-4" />
-          <span>Thú Cưng Của Tôi ({myAdoptedPets.length})</span>
+          <span>My Pets ({myAdoptedPets.length})</span>
         </button>
 
         <button
@@ -362,7 +362,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>Đơn Nhận Nuôi ({applications.length})</span>
+          <span>Applications ({applications.length})</span>
           {pendingAppsCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white">
               {pendingAppsCount}
@@ -379,7 +379,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>Nhật Ký Chăm Sóc ({careLogs.length})</span>
+          <span>Care Logs ({careLogs.length})</span>
         </button>
 
         <button
@@ -391,7 +391,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           }`}
         >
           <DollarSign className="w-4 h-4" />
-          <span>Lịch Sử Đóng Góp ({donations.length})</span>
+          <span>Donations ({donations.length})</span>
         </button>
 
         <button
@@ -403,7 +403,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           }`}
         >
           <Bell className="w-4 h-4" />
-          <span>Hộp Thư Thông Báo ({notifications.length})</span>
+          <span>Notifications ({notifications.length})</span>
         </button>
       </div>
 
@@ -415,10 +415,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-                Thú Cưng Bạn Đã Nhận Nuôi Thành Công
+                Pets You Have Adopted
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Xem lại hồ sơ y tế, cập nhật tình hình sức khỏe và đăng tải hình ảnh nhật ký của bé sau khi về nhà.
+                Review medical history, post health updates, and share photos as your pet settles in.
               </p>
             </div>
           </div>
@@ -430,10 +430,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               </div>
               <div className="max-w-md mx-auto">
                 <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                  Bạn Chưa Có Thú Cưng Nào Được Nhận Nuôi
+                  You Have Not Adopted Any Pets Yet
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Các bé cưng cứu hộ rất cần mái ấm yêu thương. Hãy xem danh sách thú cưng đang cần chủ hoặc sử dụng tính năng AI Ghép Đôi Pet để tìm người bạn 4 chân phù hợp nhất!
+                  Rescue pets need loving homes. Explore available pets or use our AI Matchmaker to find your ideal four-legged companion!
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -441,14 +441,14 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                   onClick={() => onNavigateTab('pets')}
                   className="px-5 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-colors shadow-md"
                 >
-                  Xem Danh Sách Thú Cưng
+                  Browse Available Pets
                 </button>
                 <button
                   onClick={() => onNavigateTab('matchmaker')}
                   className="px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-sky-500" />
-                  <span>AI Ghép Đôi Pet</span>
+                  <span>AI Pet Matchmaker</span>
                 </button>
               </div>
             </div>
@@ -470,12 +470,12 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                       <div className="absolute top-3 left-3">
                         <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-md flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Đã Nhận Nuôi
+                          Adopted
                         </span>
                       </div>
                       <div className="absolute top-3 right-3">
                         <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/60 text-white backdrop-blur-sm">
-                          {pet.species === 'Dog' ? 'Chó' : pet.species === 'Cat' ? 'Mèo' : pet.species}
+                          {pet.species === 'Chó' || pet.species === 'Dog' ? 'Dog' : pet.species === 'Mèo' || pet.species === 'Cat' ? 'Cat' : pet.species}
                         </span>
                       </div>
                     </div>
@@ -488,7 +488,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                             {pet.name}
                           </h3>
                           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                            {pet.ageMonths} tháng tuổi
+                            {pet.ageMonths} months old
                           </span>
                         </div>
                         <div className="text-xs text-sky-600 dark:text-sky-400 font-medium mt-0.5">
@@ -500,12 +500,12 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                       <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs space-y-1.5">
                         <div className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>Tình trạng: {pet.healthStatus || 'Khỏe mạnh'}</span>
+                          <span>Status: {pet.healthStatus || 'Healthy'}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                          <span>{pet.vaccinated ? '✓ Đã tiêm vắc xin' : 'Chưa tiêm vắc xin'}</span>
+                          <span>{pet.vaccinated ? '✓ Vaccinated' : 'Unvaccinated'}</span>
                           <span>•</span>
-                          <span>{pet.sterilized ? '✓ Đã triệt sản' : 'Chưa triệt sản'}</span>
+                          <span>{pet.sterilized ? '✓ Neutered/Spayed' : 'Not Neutered'}</span>
                         </div>
                       </div>
                     </div>
@@ -517,14 +517,14 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                       onClick={() => onViewPetDetail(pet)}
                       className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-colors text-center"
                     >
-                      Hồ Sơ Bệnh Án
+                      Medical Records
                     </button>
                     <button
                       onClick={() => openLogModalForPet(pet)}
                       className="px-3 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Viết Care Log</span>
+                      <span>Write Care Log</span>
                     </button>
                   </div>
                 </div>
@@ -539,10 +539,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-              Theo Dõi Tiến Trình Đơn Xin Nhận Nuôi
+              Adoption Application Tracking
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Cập nhật trực tiếp kết quả xét duyệt từ Ban Quản Trị trạm cứu hộ và phản hồi ghi chú.
+              Track real-time application status, review decisions, and notes from shelter staff.
             </p>
           </div>
 
@@ -553,17 +553,17 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               </div>
               <div className="max-w-md mx-auto">
                 <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                  Bạn Chưa Gửi Đơn Xin Nhận Nuôi Nào
+                  No Applications Submitted Yet
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Khi bạn tìm thấy bé thú cưng ưng ý, hãy nhấn "Gửi Đơn Nhận Nuôi". Mọi trạng thái xét duyệt sẽ hiển thị tại đây!
+                  When you find a pet you love, click "Adopt Me" to submit an application. Status updates will appear here!
                 </p>
               </div>
               <button
                 onClick={() => onNavigateTab('pets')}
                 className="px-5 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-colors shadow-md"
               >
-                Khám Phá Thú Cưng Đang Chờ Chủ
+                Explore Pets Waiting for a Home
               </button>
             </div>
           ) : (
@@ -586,14 +586,14 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                               app.petImage ||
                               'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=300&q=80'
                             }
-                            alt={app.petName || 'Thú cưng'}
+                            alt={app.petName || 'Pet'}
                             className="w-full h-full object-cover"
                           />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="font-bold text-base text-slate-800 dark:text-white">
-                              Đơn Xin Nhận Nuôi Bé: {app.petName || matchedPet?.name || 'Thú Cưng'}
+                              Application for: {app.petName || matchedPet?.name || 'Pet'}
                             </h3>
                             <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
                               #{app.applicationId}
@@ -602,12 +602,12 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-3">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              Ngày gửi: {app.submittedAt || app.appliedAt || 'Gần đây'}
+                              Date: {app.submittedAt || app.appliedAt || 'Recent'}
                             </span>
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Home className="w-3 h-3" />
-                              Không gian: {app.housingType} {app.hasYard ? '(Có sân vườn)' : ''}
+                              Housing: {app.housingType} {app.hasYard ? '(With Yard)' : ''}
                             </span>
                           </div>
                         </div>
@@ -646,16 +646,16 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                     {app.status === 'Approved' && (
                       <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-xs text-emerald-900 dark:text-emerald-200 space-y-2">
                         <div className="font-bold flex items-center gap-1.5">
-                          <span>🎉 Lời Nhắn Từ Ban Quản Trị Trạm Cứu Hộ:</span>
+                          <span>🎉 Message from Shelter Team:</span>
                         </div>
                         <p className="leading-relaxed">
-                          "{app.adminNotes || app.staffNotes || 'Hồ sơ của bạn rất tuyệt vời! Vui lòng ghé trạm để hoàn tất thủ tục bàn giao bé.'}"
+                          "{app.adminNotes || app.staffNotes || 'Your application looks wonderful! Please visit the shelter to complete the adoption.'}"
                         </p>
                         <div className="pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40 flex flex-wrap items-center gap-3 font-semibold text-[11px]">
-                          <span>📌 Bước kế tiếp:</span>
-                          <span>1. Mang theo CCCD đến trạm</span>
-                          <span>2. Ký hợp đồng nhận nuôi</span>
-                          <span>3. Đăng ảnh bé lên Care Log</span>
+                          <span>📌 Next Steps:</span>
+                          <span>1. Bring valid ID / passport to shelter</span>
+                          <span>2. Sign adoption agreement</span>
+                          <span>3. Post pet updates on Care Log</span>
                         </div>
                       </div>
                     )}
@@ -664,9 +664,9 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                       <div className="p-3.5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
                         <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                         <div>
-                          <span className="font-bold">Hồ sơ đang được nhân viên trạm cứu hộ xem xét.</span>
+                          <span className="font-bold">Your application is currently under review by shelter staff.</span>
                           <p className="mt-0.5 text-slate-600 dark:text-slate-300">
-                            Chúng tôi sẽ liên hệ qua số điện thoại <strong>{app.applicantPhone || currentUser.phone}</strong> hoặc email để phỏng vấn ngắn và xác nhận điều kiện nuôi dưỡng.
+                            We will contact you via phone <strong>{app.applicantPhone || currentUser.phone}</strong> or email for a brief interview and housing verification.
                           </p>
                         </div>
                       </div>
@@ -674,9 +674,9 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
 
                     {app.status === 'Rejected' && (
                       <div className="p-3.5 rounded-2xl bg-rose-50/50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40 text-xs text-rose-900 dark:text-rose-200">
-                        <div className="font-bold">Ghi chú từ trạm:</div>
+                        <div className="font-bold">Notes from shelter:</div>
                         <p className="mt-0.5">
-                          "{app.adminNotes || app.staffNotes || 'Bé cưng hiện tại cần điều kiện chăm sóc đặc biệt hơn. Rất mong bạn tham khảo thêm các bé khác tại trạm!'}"
+                          "{app.adminNotes || app.staffNotes || 'This pet requires specific accommodations at this time. We warmly invite you to explore other pets at our shelter!'}"
                         </p>
                       </div>
                     )}
@@ -688,7 +688,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                           onClick={() => onViewPetDetail(matchedPet)}
                           className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1"
                         >
-                          <span>Xem lại thông tin bé {matchedPet.name}</span>
+                          <span>View {matchedPet.name}'s Profile</span>
                           <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -707,10 +707,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-                Nhật Ký Chăm Sóc Của Bạn
+                Your Pet Care Logs
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Chia sẻ hình ảnh, cân nặng và sự tiến bộ của bé sau khi được nhận nuôi về nhà mới.
+                Share photos, health status, and heartwarming milestones as your pet settles into family life.
               </p>
             </div>
             {myAdoptedPets.length > 0 && (
@@ -719,7 +719,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                 className="px-4 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-md self-start"
               >
                 <Plus className="w-4 h-4" />
-                <span>Viết Nhật Ký Chăm Sóc Mới</span>
+                <span>Write New Care Log</span>
               </button>
             )}
           </div>
@@ -731,10 +731,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               </div>
               <div className="max-w-md mx-auto">
                 <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                  Chưa Có Bài Viết Nhật Ký Nào
+                  No Care Logs Written Yet
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Trạm cứu hộ và cộng đồng luôn mong được nhìn thấy các bé thú cưng vui tươi, lớn lên mỗi ngày cùng bạn!
+                  The shelter and community love seeing your pet grow happy and healthy in their new home!
                 </p>
               </div>
               {myAdoptedPets.length > 0 ? (
@@ -742,14 +742,14 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                   onClick={() => openLogModalForPet(myAdoptedPets[0])}
                   className="px-5 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-colors shadow-md"
                 >
-                  Đăng Tải Nhật Ký Đầu Tiên Cho Bé
+                  Post First Care Log Update
                 </button>
               ) : (
                 <button
                   onClick={() => onNavigateTab('carelogs')}
                   className="px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 transition-colors"
                 >
-                  Xem Nhật Ký Của Các Chủ Nuôi Khác
+                  Browse Community Care Logs
                 </button>
               )}
             </div>
@@ -764,7 +764,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-800 dark:text-white">
-                          Bé: {log.petName || 'Thú Cưng'}
+                          Pet: {log.petName || 'Pet'}
                         </span>
                         {log.mood && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
@@ -773,7 +773,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                         )}
                       </div>
                       <span className="text-[11px] text-slate-400">
-                        {log.logDate?.split('T')[0] || 'Hôm nay'}
+                        {log.logDate?.split('T')[0] || 'Today'}
                       </span>
                     </div>
 
@@ -794,12 +794,12 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                     {log.healthUpdate && (
                       <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
                         <div className="font-semibold text-slate-700 dark:text-slate-300">
-                          Tình trạng thể chất:
+                          Physical condition:
                         </div>
                         <div>{log.healthUpdate}</div>
                         {log.weightKg && (
                           <div className="font-semibold text-sky-600 dark:text-sky-400">
-                            Cân nặng: {log.weightKg} kg
+                            Weight: {log.weightKg} kg
                           </div>
                         )}
                       </div>
@@ -818,10 +818,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-                Lịch Sử Đóng Góp & Ủng Hộ Cứu Trợ
+                Donation & Support History
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Cảm ơn bạn đã chung tay mang lại thức ăn, nơi ở và điều trị y tế cho các bé thú cưng vô gia cư.
+                Thank you for helping us provide food, medical care, and shelter for rescued animals.
               </p>
             </div>
             <button
@@ -829,7 +829,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               className="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-md self-start"
             >
               <Heart className="w-4 h-4 fill-current" />
-              <span>Ủng Hộ Thêm Cho Trạm</span>
+              <span>Make a Donation</span>
             </button>
           </div>
 
@@ -840,17 +840,17 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               </div>
               <div className="max-w-md mx-auto">
                 <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                  Chưa Có Lịch Sử Đóng Góp
+                  No Donation History Yet
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Mỗi đóng góp dù nhỏ cũng tiếp thêm kinh phí mua vắc xin, thức ăn và viện phí điều trị cho những sinh linh bé nhỏ.
+                  Every donation helps provide vital vaccines, nutritious food, and emergency veterinary care for rescue pets.
                 </p>
               </div>
               <button
                 onClick={() => onNavigateTab('shelters')}
                 className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors shadow-md"
               >
-                Ủng Hộ Cứu Trợ Ngay
+                Donate to Rescue Shelter
               </button>
             </div>
           ) : (
@@ -870,13 +870,13 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                           {(d.amount || 0).toLocaleString('vi-VN')} VNĐ
                         </span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                          Thành công
+                          Successful
                         </span>
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-3">
-                        <span>Phương thức: {d.paymentMethod || 'Chuyển khoản'}</span>
+                        <span>Method: {d.paymentMethod || 'Transfer'}</span>
                         <span>•</span>
-                        <span>Ngày: {d.donatedAt || d.date || 'Gần đây'}</span>
+                        <span>Date: {d.donatedAt || d.date || 'Recent'}</span>
                         {(d.shelterName || d.target) && (
                           <>
                             <span>•</span>
@@ -896,10 +896,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
 
                   <div className="text-right shrink-0">
                     <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 block">
-                      Mã GD: {d.transactionCode || d.donationId}
+                      TxID: {d.transactionCode || d.donationId}
                     </span>
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                      ✓ Đã chuyển vào quỹ cứu hộ
+                      ✓ Transferred to rescue fund
                     </span>
                   </div>
                 </div>
@@ -914,10 +914,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-              Thông Báo Cá Nhân
+              Your Notifications
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Cập nhật thông tin phê duyệt đơn nhận nuôi, quyên góp và các hoạt động từ trạm cứu hộ gửi đến bạn.
+              Stay informed on application approvals, donation receipts, and shelter news.
             </p>
           </div>
 
@@ -927,10 +927,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                 🔔
               </div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                Không Có Thông Báo Mới
+                No New Notifications
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Khi có cập nhật về đơn nhận nuôi hoặc tin nhắn từ trạm, bạn sẽ nhận được thông báo ngay tại đây!
+                When your application status changes or updates arrive from the shelter, they appear here!
               </p>
             </div>
           ) : (
@@ -968,7 +968,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                           {notif.title}
                         </h4>
                         <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                          {notif.createdAt?.split('T')[0] || 'Mới'}
+                          {notif.createdAt?.split('T')[0] || 'New'}
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
@@ -992,10 +992,10 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               <div>
                 <h3 className="font-extrabold text-lg text-slate-800 dark:text-white flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-sky-600" />
-                  <span>Đăng Nhật Ký Chăm Sóc Bé</span>
+                  <span>Post Care Log Update</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Cập nhật khoảnh khắc và tình hình sức khỏe của bé cưng
+                  Share happy moments and health progress of your pet
                 </p>
               </div>
               <button
@@ -1018,7 +1018,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               {/* Select Pet */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Chọn Thú Cưng <span className="text-rose-500">*</span>
+                  Select Pet <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={careLogForm.petId}
@@ -1026,7 +1026,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-white"
                   required
                 >
-                  <option value="">-- Chọn bé cưng cần cập nhật --</option>
+                  <option value="">-- Choose adopted pet --</option>
                   {myAdoptedPets.map((p) => (
                     <option key={p.petId} value={p.petId}>
                       {p.name} ({p.breed})
@@ -1043,7 +1043,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               {/* Upload Photo Directly From Device */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Hình Ảnh Của Bé (Chọn Từ Thư Viện Ảnh Của Bạn)
+                  Pet Photo (Choose from your device)
                 </label>
                 <div className="flex items-center gap-3">
                   <input
@@ -1059,11 +1059,11 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                     className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-2 border border-slate-200 dark:border-slate-700"
                   >
                     <Upload className="w-4 h-4 text-sky-500" />
-                    <span>Tải ảnh từ máy / điện thoại</span>
+                    <span>Upload photo from device</span>
                   </button>
                   {careLogForm.fileName && (
                     <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium truncate max-w-xs">
-                      ✓ Đã chọn: {careLogForm.fileName}
+                      ✓ Selected: {careLogForm.fileName}
                     </span>
                   )}
                 </div>
@@ -1082,13 +1082,13 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               {/* Note / Caption */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Nhật Ký & Chia Sẻ Khoảnh Khắc <span className="text-rose-500">*</span>
+                  Care Log & Notes <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={3}
                   value={careLogForm.note}
                   onChange={(e) => setCareLogForm({ ...careLogForm, note: e.target.value })}
-                  placeholder="Hôm nay bé làm quen với thành viên mới, ăn hết bát cơm và rất quấn quýt..."
+                  placeholder="Today the pet made new friends, finished dinner happily, and loved playing in the yard..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-white"
                   required
                 />
@@ -1098,22 +1098,22 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Tâm Trạng Của Bé
+                    Pet Mood
                   </label>
                   <select
                     value={careLogForm.mood}
                     onChange={(e: any) => setCareLogForm({ ...careLogForm, mood: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-800 dark:text-white"
                   >
-                    <option value="Vui vẻ & Tăng động">Vui vẻ & Tăng động</option>
-                    <option value="Ngoan ngoãn & Thư giãn">Ngoan ngoãn & Thư giãn</option>
-                    <option value="Hơi nhút nhát">Hơi nhút nhát</option>
-                    <option value="Khỏe mạnh">Khỏe mạnh</option>
+                    <option value="Playful & Energetic">Playful & Energetic</option>
+                    <option value="Calm & Relaxed">Calm & Relaxed</option>
+                    <option value="A Bit Shy">A Bit Shy</option>
+                    <option value="Healthy & Active">Healthy & Active</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Cân Nặng Hiện Tại (kg)
+                    Current Weight (kg)
                   </label>
                   <input
                     type="number"
@@ -1128,13 +1128,13 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
               {/* Health Update */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Tình Hình Sức Khỏe & Thể Trạng
+                  Health Status & Condition
                 </label>
                 <input
                   type="text"
                   value={careLogForm.healthUpdate}
                   onChange={(e) => setCareLogForm({ ...careLogForm, healthUpdate: e.target.value })}
-                  placeholder="Lông mượt, mắt sáng, ăn uống điều độ..."
+                  placeholder="Shiny coat, bright eyes, eating well..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-white"
                 />
               </div>
@@ -1146,7 +1146,7 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                   onClick={() => setIsAddCareLogOpen(false)}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold text-xs hover:bg-slate-100"
                 >
-                  Hủy Bỏ
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -1154,11 +1154,11 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                   className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-colors shadow-md flex items-center gap-2"
                 >
                   {submittingLog ? (
-                    <span>Đang lưu...</span>
+                    <span>Saving...</span>
                   ) : (
                     <>
                       <Check className="w-4 h-4" />
-                      <span>Đăng Nhật Ký</span>
+                      <span>Publish Care Log</span>
                     </>
                   )}
                 </button>

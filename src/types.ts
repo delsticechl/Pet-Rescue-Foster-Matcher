@@ -91,7 +91,7 @@ export interface Shelter {
 
 export type ApplicationType = 'Adopt' | 'Foster';
 export type ApplicationStatus = 'Pending' | 'Submitted' | 'Interviewing' | 'Approved' | 'Rejected';
-export type HousingType = 'Single Family House' | 'Apartment / Condo' | 'Rented House' | 'Townhouse / Villa' | 'Nhà riêng' | 'Chung cư' | 'Nhà thuê' | 'Biệt thự sân vườn';
+export type HousingType = 'Single Family House' | 'Apartment / Condo' | 'Rented House' | 'Townhouse / Villa' | 'Nhà riêng' | 'Chung cư' | 'Nhà thuê' | 'Biệt thự sân vườn' | string;
 
 export interface AdoptionApplication {
   applicationId: string;
@@ -134,7 +134,7 @@ export interface CareLog {
   imageUrl: string;
   healthUpdate?: string;
   weightKg?: number;
-  mood?: 'Vui vẻ & Tăng động' | 'Ngoan ngoãn & Thư giãn' | 'Hơi nhút nhát' | 'Khỏe mạnh';
+  mood?: 'Playful & Energetic' | 'Calm & Relaxed' | 'A Bit Shy' | 'Healthy & Active' | 'Vui vẻ & Tăng động' | 'Ngoan ngoãn & Thư giãn' | 'Hơi nhút nhát' | 'Khỏe mạnh' | string;
   staffName?: string;
   authorName?: string;
   category?: string;
@@ -149,7 +149,7 @@ export interface Donation {
   shelterId?: string;
   shelterName?: string;
   amount: number;
-  paymentMethod: 'MoMo' | 'VietQR' | 'Chuyển khoản' | 'Thẻ quốc tế' | 'Transfer';
+  paymentMethod: 'MoMo' | 'VietQR' | 'Bank Transfer' | 'Credit Card' | 'Transfer' | 'Chuyển khoản' | 'Thẻ quốc tế' | string;
   transactionCode?: string;
   donorName: string;
   donorEmail?: string;

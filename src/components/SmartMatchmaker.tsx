@@ -10,19 +10,19 @@ interface SmartMatchmakerProps {
 }
 
 const QUICK_TAGS = [
-  'Căn hộ chung cư nhỏ',
-  'Nhà có trẻ nhỏ dưới 6 tuổi',
-  'Đã nuôi mèo/chó khác',
-  'Người đi làm bận rộn',
-  'Nuôi thú cưng lần đầu',
-  'Thích bé năng động, đi dạo',
-  'Thích bé trầm tính, ngoan ngoãn',
-  'Không gian có sân vườn rộng',
+  'Small apartment',
+  'Kids under 6 at home',
+  'Already have pets',
+  'Busy work schedule',
+  'First-time pet owner',
+  'Enjoys outdoor walks',
+  'Prefers calm and gentle',
+  'Spacious yard available',
 ];
 
 export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails, onApply }) => {
   const [description, setDescription] = useState(
-    'Tôi sống ở căn hộ chung cư, ban ngày đi làm giờ hành chính, muốn tìm một bé ngoan ngoãn, tình cảm và thích nghi tốt.'
+    'I live in an apartment, work office hours, and want a well-behaved, loving companion.'
   );
   const [speciesPreference, setSpeciesPreference] = useState<'All' | 'Dog' | 'Cat'>('All');
   const [livingSpace, setLivingSpace] = useState<'Apartment' | 'HouseWithYard' | 'Rented'>('Apartment');
@@ -70,14 +70,14 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="max-w-2xl relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 border border-white/25 text-amber-200">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" /> AI Pet Matchmaker • Tìm Bạn Bốn Chân Thông Minh
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" /> AI Pet Matchmaker • Smart Companion Finder
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Kết Nối Bé Thú Cưng Phù Hợp Nhất Với Cuộc Sống Của Bạn
+            Match the Perfect Companion for Your Lifestyle
           </h1>
           <p className="text-xs sm:text-sm text-sky-100 leading-relaxed">
-            Thay vì tìm kiếm qua các bộ lọc khô khan, hãy chia sẻ phong cách sống và không gian nhà bạn.
-            Hệ thống AI sẽ phân tích đặc tính từng bé đang có tại trạm cứu hộ để tìm ra người bạn đồng hành lý tưởng nhất.
+            Instead of manual filters, share your lifestyle, routine, and living environment.
+            Our AI matches the personality and needs of shelter pets to find your ideal four-legged friend.
           </p>
         </div>
       </div>
@@ -87,19 +87,19 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
         <form onSubmit={handleRunAiMatching} className="space-y-5">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
-              1. Hãy mô tả về ngôi nhà, gia đình và lối sống của bạn:
+              1. Describe your home, family, and daily routine:
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ví dụ: Nhà tôi ở chung cư tầng 12, có ban công an toàn, đi làm từ 8h-17h, thích một bé mèo hoặc cún ít rụng lông, thích được ôm ấp..."
+              placeholder="e.g. I live in an apartment, work from 9 to 5, looking for a calm cat or dog who loves cuddles..."
               className="w-full p-3.5 text-xs rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500"
             />
 
             {/* Quick tags */}
             <div className="mt-2.5 flex flex-wrap gap-1.5">
-              <span className="text-[11px] font-semibold text-slate-400 self-center mr-1">Gợi ý nhanh:</span>
+              <span className="text-[11px] font-semibold text-slate-400 self-center mr-1">Quick suggestions:</span>
               {QUICK_TAGS.map((tag) => {
                 const isSelected = description.includes(tag);
                 return (
@@ -124,31 +124,31 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
             <div>
               <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                Ưu tiên loài:
+                Species preference:
               </label>
               <select
                 value={speciesPreference}
                 onChange={(e) => setSpeciesPreference(e.target.value as any)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200"
               >
-                <option value="All">Tất cả (Chó & Mèo)</option>
-                <option value="Dog">Chó cưng</option>
-                <option value="Cat">Mèo cưng</option>
+                <option value="All">All (Dogs & Cats)</option>
+                <option value="Dog">Dogs</option>
+                <option value="Cat">Cats</option>
               </select>
             </div>
 
             <div>
               <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                Không gian ở:
+                Living space:
               </label>
               <select
                 value={livingSpace}
                 onChange={(e) => setLivingSpace(e.target.value as any)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200"
               >
-                <option value="Apartment">Căn hộ / Chung cư</option>
-                <option value="HouseWithYard">Nhà riêng có sân vườn</option>
-                <option value="Rented">Nhà thuê / Phòng trọ</option>
+                <option value="Apartment">Apartment / Condo</option>
+                <option value="HouseWithYard">House with Yard</option>
+                <option value="Rented">Rented House / Studio</option>
               </select>
             </div>
 
@@ -160,7 +160,7 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
                   onChange={(e) => setFamilyWithKids(e.target.checked)}
                   className="rounded text-sky-600 focus:ring-sky-500"
                 />
-                <span>Gia đình có trẻ nhỏ</span>
+                <span>Family with young kids</span>
               </label>
             </div>
 
@@ -172,7 +172,7 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
                   onChange={(e) => setHasOtherPets(e.target.checked)}
                   className="rounded text-sky-600 focus:ring-sky-500"
                 />
-                <span>Đã có thú cưng khác</span>
+                <span>Already have other pets</span>
               </label>
             </div>
           </div>
@@ -186,12 +186,12 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Đang phân tích và ghép đôi bằng AI...
+                  Analyzing & matching with AI...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-amber-300" />
-                  Tìm Bé Phù Hợp Bằng AI Ngay
+                  Find Matches with AI
                 </>
               )}
             </button>
@@ -205,11 +205,11 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              Kết Quả Ghép Đôi Phù Hợp Nhất ({matchedResults.length} bé)
+              Best Match Results ({matchedResults.length} pets)
             </h2>
             {poweredBy && (
               <span className="text-[11px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
-                Xử lý bởi: {poweredBy}
+                Powered by: {poweredBy}
               </span>
             )}
           </div>
@@ -217,8 +217,8 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
           {matchedResults.length === 0 ? (
             <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 text-xs text-slate-400 space-y-2">
               <Dog className="w-8 h-8 mx-auto text-slate-300" />
-              <p className="font-bold text-slate-600 dark:text-slate-300">Chưa tìm thấy bé phù hợp với tiêu chí này.</p>
-              <p>Hãy thử mở rộng mô tả hoặc chọn tiêu chí linh hoạt hơn bạn nhé!</p>
+              <p className="font-bold text-slate-600 dark:text-slate-300">No pets matched these criteria yet.</p>
+              <p>Try broadening your description or adjusting preference criteria!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -239,7 +239,7 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
                       />
                       {/* Compatibility badge */}
                       <div className="absolute top-3 right-3 px-3 py-1 rounded-xl bg-emerald-500 text-white text-xs font-black shadow-md flex items-center gap-1">
-                        <CheckCircle className="w-3.5 h-3.5" /> {item.score}% Phù Hợp
+                        <CheckCircle className="w-3.5 h-3.5" /> {item.score}% Match
                       </div>
                       <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-xl bg-slate-900/75 backdrop-blur-md text-white text-xs font-bold">
                         {pet.species} • {pet.breed}
@@ -256,7 +256,7 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
                         {/* AI Match Explanation */}
                         <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/60 text-xs text-sky-900 dark:text-sky-200 leading-relaxed">
                           <span className="font-bold block text-[11px] text-sky-700 dark:text-sky-300 mb-0.5">
-                            💡 Lý do ghép đôi:
+                            💡 Match reason:
                           </span>
                           {item.reason}
                         </div>
@@ -268,14 +268,14 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
                           onClick={() => onViewDetails(pet)}
                           className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-200 transition-colors"
                         >
-                          Xem Hồ Sơ
+                          View Profile
                         </button>
                         <button
                           type="button"
                           onClick={() => onApply(pet, 'Adopt')}
                           className="flex-1 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold shadow-md shadow-sky-500/20 transition-all flex items-center justify-center gap-1"
                         >
-                          <Heart className="w-3.5 h-3.5 fill-current" /> Nhận Nuôi
+                          <Heart className="w-3.5 h-3.5 fill-current" /> Adopt
                         </button>
                       </div>
                     </div>

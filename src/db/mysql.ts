@@ -492,7 +492,7 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
           'adminstaff@pawfund.org',
           'adminstaff123@', // Plain/hash for AdminStaff
           '0988776655',
-          'Văn Phòng Cứu Hộ PawFund Toàn Quốc',
+          'PawFund National Rescue & Operations Office',
           'Admin',
           'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         ]
@@ -507,8 +507,8 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           'SHL-01',
-          'Trạm Cứu Hộ Động Vật PawFund',
-          '264 Âu Cơ, P. Nhật Tân, Q. Tây Hồ, Hà Nội',
+          'PawFund Animal Rescue Shelter',
+          '264 Au Co, Nhat Tan, Tay Ho, Hanoi',
           '0903112233',
           'contact@pawfund.org',
           'USR-ADMIN',
@@ -529,13 +529,13 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
 
     return {
       success: true,
-      message: `Khởi tạo Schema MySQL thành công! Đã tạo ${tables.length} bảng dữ liệu.`,
+      message: `MySQL schema initialized successfully! Created ${tables.length} tables.`,
       tablesCreated: tables,
     };
   } catch (err: any) {
     return {
       success: false,
-      message: `Lỗi khi tạo Schema MySQL: ${err.message || String(err)}`,
+      message: `Error initializing MySQL schema: ${err.message || String(err)}`,
     };
   }
 }
@@ -571,13 +571,13 @@ async function ensureShelterId(requested?: string): Promise<string> {
     await pool.query(
       `INSERT INTO users (user_id, username, full_name, email, password_hash, phone, address, role, avatar_url)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [managerId, 'AdminStaff', 'AdminStaff', 'adminstaff@pawfund.org', 'adminstaff123@', '0988776655', 'Văn Phòng Cứu Hộ PawFund', 'Admin', '']
+      [managerId, 'AdminStaff', 'AdminStaff', 'adminstaff@pawfund.org', 'adminstaff123@', '0988776655', 'PawFund Rescue Office', 'Admin', '']
     );
   }
   await pool.query(
     `INSERT INTO shelters (shelter_id, shelter_name, address, phone, email, manager_id, capacity, current_occupancy, bank_account, bank_name, image_url)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ['SHL-01', 'Trạm Cứu Hộ Động Vật PawFund', '264 Âu Cơ, P. Nhật Tân, Q. Tây Hồ, Hà Nội', '0903112233', 'contact@pawfund.org', managerId, 60, 0, '19034567890011', 'Techcombank - PawFund Rescue Fund', '']
+    ['SHL-01', 'PawFund Animal Rescue Shelter', '264 Au Co, Nhat Tan, Tay Ho, Hanoi', '0903112233', 'contact@pawfund.org', managerId, 60, 0, '19034567890011', 'Techcombank - PawFund Rescue Fund', '']
   );
   return 'SHL-01';
 }
@@ -781,7 +781,7 @@ export const MySqlService = {
           initialMedicalRecord.medicalDate || new Date().toISOString().split('T')[0],
           initialMedicalRecord.diagnosis,
           initialMedicalRecord.treatment,
-          initialMedicalRecord.vetName || 'Bác sĩ thú y PawFund',
+          initialMedicalRecord.vetName || 'PawFund Veterinarian',
           initialMedicalRecord.medications || '',
         ]
       );
@@ -791,7 +791,7 @@ export const MySqlService = {
         medicalDate: initialMedicalRecord.medicalDate || new Date().toISOString().split('T')[0],
         diagnosis: initialMedicalRecord.diagnosis,
         treatment: initialMedicalRecord.treatment,
-        vetName: initialMedicalRecord.vetName || 'Bác sĩ thú y PawFund',
+        vetName: initialMedicalRecord.vetName || 'PawFund Veterinarian',
         medications: initialMedicalRecord.medications || '',
       });
     }
@@ -858,7 +858,7 @@ export const MySqlService = {
         record.medicalDate || new Date().toISOString().split('T')[0],
         record.diagnosis || '',
         record.treatment || '',
-        record.vetName || 'Bác sĩ PawFund',
+        record.vetName || 'PawFund Veterinarian',
         record.medications || '',
       ]
     );
@@ -868,7 +868,7 @@ export const MySqlService = {
       medicalDate: record.medicalDate || new Date().toISOString().split('T')[0],
       diagnosis: record.diagnosis || '',
       treatment: record.treatment || '',
-      vetName: record.vetName || 'Bác sĩ PawFund',
+      vetName: record.vetName || 'PawFund Veterinarian',
       medications: record.medications || '',
     };
   },
@@ -887,7 +887,7 @@ export const MySqlService = {
       capacity: r.capacity,
       currentPetsCount: r.current_occupancy || 0,
       rating: 5.0,
-      description: r.description || 'Trạm cứu hộ PawFund tiếp nhận và chăm sóc thú cưng.',
+      description: r.description || 'PawFund rescue shelter taking care of abandoned animals.',
       bankAccount: r.bank_account || '',
       bankName: r.bank_name || '',
       imageUrl: r.image_url || 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=600&q=80',
@@ -1008,7 +1008,7 @@ export const MySqlService = {
       notes: r.notes,
       imageUrl: r.image_url || '',
       healthUpdate: r.health_update || '',
-      mood: r.mood || 'Khỏe mạnh',
+      mood: r.mood || 'Healthy',
       weightKg: r.weight_kg != null ? Number(r.weight_kg) : undefined,
       petName: r.pet_name,
     }));
@@ -1024,12 +1024,12 @@ export const MySqlService = {
         logId,
         log.petId,
         log.userId || null,
-        log.authorName || 'Người nhận nuôi',
+        log.authorName || 'Loving Adopter',
         log.logDate || new Date().toISOString().split('T')[0],
         log.note || log.notes || '',
         log.imageUrl || '',
         log.healthUpdate || '',
-        log.mood || 'Vui vẻ & Tăng động',
+        log.mood || 'Playful & Energetic',
         log.weightKg ?? null,
       ]
     );
@@ -1038,14 +1038,14 @@ export const MySqlService = {
       logId,
       petId: log.petId!,
       userId: log.userId || '',
-      authorName: log.authorName || 'Người nhận nuôi',
+      authorName: log.authorName || 'Loving Adopter',
       logDate: log.logDate || new Date().toISOString().split('T')[0],
       note: log.note || log.notes || '',
       notes: log.note || log.notes || '',
       imageUrl: log.imageUrl || '',
       healthUpdate: log.healthUpdate || '',
       weightKg: log.weightKg ?? undefined,
-      mood: log.mood || 'Khỏe mạnh',
+      mood: log.mood || 'Healthy',
     };
   },
 
@@ -1060,9 +1060,9 @@ export const MySqlService = {
       donorEmail: r.donor_email,
       amount: Number(r.amount),
       date: r.date,
-      target: r.target || 'Quỹ y tế & thức ăn cho thú cưng',
+      target: r.target || 'Medical & food rescue fund',
       message: r.message || '',
-      paymentMethod: r.payment_method || 'Chuyển khoản',
+      paymentMethod: r.payment_method || 'Bank Transfer',
     }));
   },
 
@@ -1075,11 +1075,11 @@ export const MySqlService = {
       [
         donationId,
         data.userId || null,
-        data.donorName || 'Nhà hảo tâm',
+        data.donorName || 'Kind Supporter',
         data.donorEmail || '',
         data.amount || 100000,
         data.date || new Date().toISOString().split('T')[0],
-        data.target || 'Quỹ cứu trợ PawFund',
+        data.target || 'PawFund Rescue Fund',
         data.message || '',
         data.paymentMethod || 'VietQR',
       ]
@@ -1088,11 +1088,11 @@ export const MySqlService = {
     return {
       donationId,
       userId: data.userId,
-      donorName: data.donorName || 'Nhà hảo tâm',
+      donorName: data.donorName || 'Kind Supporter',
       donorEmail: data.donorEmail,
       amount: data.amount || 100000,
       date: data.date || new Date().toISOString().split('T')[0],
-      target: data.target || 'Quỹ cứu trợ PawFund',
+      target: data.target || 'PawFund Rescue Fund',
       message: data.message || '',
       paymentMethod: data.paymentMethod || 'VietQR',
     };
@@ -1133,7 +1133,7 @@ export const MySqlService = {
         id,
         notif.userId || null,
         notif.recipientEmail || null,
-        notif.title || 'Thông báo mới',
+        notif.title || 'New Notification',
         notif.message || '',
         notif.type || 'system',
         notif.link || '',
@@ -1143,7 +1143,7 @@ export const MySqlService = {
       notificationId: id,
       userId: notif.userId,
       recipientEmail: notif.recipientEmail,
-      title: notif.title || 'Thông báo mới',
+      title: notif.title || 'New Notification',
       message: notif.message || '',
       type: (notif.type as any) || 'system',
       isRead: false,

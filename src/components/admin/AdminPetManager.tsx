@@ -54,29 +54,29 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   const [openAddModal, setOpenAddModal] = useState(false);
   const [newPet, setNewPet] = useState({
     name: '',
-    species: 'Chó' as PetSpecies,
-    breed: 'Cún Cỏ Lai',
+    species: 'Dog' as PetSpecies,
+    breed: 'Mixed Breed',
     ageMonths: 12,
-    gender: 'Đực' as 'Đực' | 'Cái',
-    healthStatus: 'Bình thường' as PetHealthStatus,
+    gender: 'Male' as any,
+    healthStatus: 'Healthy' as PetHealthStatus,
     vaccinated: true,
     sterilized: true,
     adoptionStatus: 'Ready' as AdoptionStatus,
-    energyLevel: 'Trung bình' as EnergyLevel,
+    energyLevel: 'Medium' as EnergyLevel,
     goodWithKids: true,
     goodWithPets: true,
     requiresYard: false,
-    description: 'Bé vừa được trạm cứu hộ tiếp nhận, rất ngoan ngoãn và quấn người.',
+    description: 'Recently rescued pet, gentle, well-behaved, and affectionate.',
     shelterId: shelters[0]?.shelterId || 'SHL-01',
     imageUrl: SAMPLE_PET_IMAGES[0],
     fileName: 'pet_photo.jpg',
     fileSize: 180000,
     mimeType: 'image/jpeg',
     // Initial Medical Record
-    initialDiagnosis: 'Khám tổng quát khi tiếp nhận vào trạm',
-    initialTreatment: 'Đã tiêm phòng mũi 1 và tẩy giun định kỳ',
-    vetName: 'Bác sĩ thú y PawFund',
-    medications: 'Thuốc tẩy giun Drontal, vắc-xin 7 bệnh',
+    initialDiagnosis: 'General intake checkup at shelter',
+    initialTreatment: 'First round of vaccination & deworming complete',
+    vetName: 'PawFund Veterinarian',
+    medications: 'Drontal dewormer, 7-in-1 core vaccine',
     medicalDate: new Date().toISOString().split('T')[0],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,7 +92,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   // Handle Local File Upload from User's Device
   const handleFileUpload = (file: File, target: 'add' | 'edit') => {
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn một tệp hình ảnh hợp lệ (PNG, JPG, JPEG, WEBP hoặc GIF)');
+      alert('Please select a valid image file (PNG, JPG, JPEG, WEBP, or GIF)');
       return;
     }
 
@@ -115,7 +115,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
         }));
       }
     }).catch(() => {
-      alert('Không thể đọc file ảnh từ thiết bị của bạn');
+      alert('Unable to read image file from your device');
     });
   };
 
@@ -166,7 +166,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPet.name.trim()) {
-      alert('Vui lòng nhập tên cho bé thú cưng');
+      alert('Please enter a pet name');
       return;
     }
 
@@ -181,9 +181,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       );
       setOpenAddModal(false);
       onRefresh();
-      alert(`Đã đăng tải bé ${newPet.name} thành công lên trạm cứu hộ!`);
+      alert(`Successfully published pet ${newPet.name} to the shelter!`);
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi đăng tải hồ sơ thú cưng');
+      alert(err.message || 'Error publishing pet profile');
     } finally {
       setIsSubmitting(false);
     }
@@ -199,9 +199,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       setEditingPet(null);
       setEditForm(null);
       onRefresh();
-      alert(`Đã cập nhật thông tin bé ${editForm.name} thành công!`);
+      alert(`Successfully updated info for ${editForm.name}!`);
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi cập nhật thú cưng');
+      alert(err.message || 'Error updating pet');
     } finally {
       setIsSubmitting(false);
     }
@@ -214,9 +214,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       await api.deletePet(petToDelete.petId, currentUser.role);
       setPetToDelete(null);
       onRefresh();
-      alert('Đã xóa hồ sơ thú cưng khỏi hệ thống');
+      alert('Pet profile removed from the system');
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi xóa thú cưng');
+      alert(err.message || 'Error deleting pet');
     } finally {
       setIsDeleting(false);
     }
@@ -232,11 +232,11 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </span>
             <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-              Quản Lý Danh Sách Thú Cưng
+              Pet Roster Management
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Đăng tải thú cưng mới có sẵn tại trạm kèm ảnh trực tiếp từ thư viện máy và ghi nhận lịch sử khám chữa bệnh ban đầu.
+            Publish shelter pets with direct photo uploads and comprehensive medical history.
           </p>
         </div>
 
@@ -245,7 +245,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
           className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-sky-500/25 flex items-center justify-center gap-2 transition-all"
         >
           <Plus className="w-4 h-4" />
-          <span>Đăng Thú Cưng Mới</span>
+          <span>Add New Pet</span>
         </button>
       </div>
 
@@ -255,7 +255,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Tìm theo tên bé, giống loài hoặc mã Pet..."
+            placeholder="Search by pet name, breed, or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100"
@@ -268,9 +268,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
             onChange={(e) => setSpeciesFilter(e.target.value)}
             className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300"
           >
-            <option value="all">Tất cả loài</option>
-            <option value="Chó">Chó</option>
-            <option value="Mèo">Mèo</option>
+            <option value="all">All Species</option>
+            <option value="Dog">Dogs</option>
+            <option value="Cat">Cats</option>
           </select>
 
           <select
@@ -278,10 +278,10 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="Ready">Sẵn sàng nhận nuôi (Ready)</option>
-            <option value="Pending">Đang xử lý đơn (Pending)</option>
-            <option value="Adopted">Đã có chủ (Adopted)</option>
+            <option value="all">All Statuses</option>
+            <option value="Ready">Ready for Adoption</option>
+            <option value="Pending">Pending Review</option>
+            <option value="Adopted">Adopted</option>
           </select>
 
           <div className="flex border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
@@ -308,19 +308,19 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-400 uppercase font-semibold text-[10px] border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-4 py-3">Thú cưng</th>
-                  <th className="px-4 py-3">Loài / Giống</th>
-                  <th className="px-4 py-3">Tuổi & Giới tính</th>
-                  <th className="px-4 py-3">Tình trạng sức khỏe</th>
-                  <th className="px-4 py-3">Trạng thái nhận nuôi</th>
-                  <th className="px-4 py-3 text-right">Thao tác</th>
+                  <th className="px-4 py-3">Pet</th>
+                  <th className="px-4 py-3">Species / Breed</th>
+                  <th className="px-4 py-3">Age & Gender</th>
+                  <th className="px-4 py-3">Health Status</th>
+                  <th className="px-4 py-3">Adoption Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
                 {filteredPets.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
-                      Chưa có thú cưng nào. Hãy nhấn "Đăng Thú Cưng Mới" để thêm bé vào trạm!
+                      No pets found. Click "Add New Pet" to list pets at the shelter!
                     </td>
                   </tr>
                 ) : (
@@ -339,7 +339,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                                 </span>
                               </div>
                               <div className="text-[10px] text-slate-400 mt-0.5">
-                                {p.vaccinated ? '✓ Tiêm phòng' : 'Chưa tiêm'} • {p.sterilized ? '✓ Triệt sản' : 'Chưa triệt sản'}
+                                {p.vaccinated ? '✓ Vaccinated' : 'Unvaccinated'} • {p.sterilized ? '✓ Neutered/Spayed' : 'Not Neutered'}
                               </div>
                             </div>
                           </div>
@@ -351,8 +351,8 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                         </td>
 
                         <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                          <div>{p.ageMonths} tháng</div>
-                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${p.gender === 'Đực' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'}`}>
+                          <div>{p.ageMonths} mo</div>
+                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${p.gender === 'Đực' || p.gender === 'Male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'}`}>
                             {p.gender}
                           </span>
                         </td>
@@ -365,7 +365,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
 
                         <td className="px-4 py-3">
                           <span className={`px-2.5 py-1 rounded-xl text-[11px] font-bold ${p.adoptionStatus === 'Adopted' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : p.adoptionStatus === 'Pending' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'}`}>
-                            {p.adoptionStatus === 'Adopted' ? 'Đã nhận nuôi' : p.adoptionStatus === 'Pending' ? 'Đang duyệt đơn' : 'Sẵn sàng nhận nuôi'}
+                            {p.adoptionStatus === 'Adopted' ? 'Adopted' : p.adoptionStatus === 'Pending' ? 'Pending' : 'Ready'}
                           </span>
                         </td>
 
@@ -374,21 +374,21 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                             <button
                               onClick={() => handleOpenEdit(p)}
                               className="p-1.5 rounded-lg text-slate-500 hover:text-sky-600 hover:bg-slate-100 dark:hover:bg-slate-700"
-                              title="Sửa thông tin"
+                              title="Edit Pet"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => onOpenMedicalModal(p)}
                               className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                              title="Xem/Thêm Bệnh Án Y Tế"
+                              title="View / Add Medical Record"
                             >
                               <Stethoscope className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setPetToDelete(p)}
                               className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                              title="Xóa bé"
+                              title="Delete Pet"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -422,7 +422,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   <div className="p-4 space-y-2">
                     <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center justify-between">
                       <span>{p.name}</span>
-                      <span className="text-xs text-slate-400">{p.ageMonths} tháng</span>
+                      <span className="text-xs text-slate-400">{p.ageMonths} mo</span>
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{p.description}</p>
                   </div>
@@ -433,13 +433,13 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onClick={() => handleOpenEdit(p)}
                     className="flex-1 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs"
                   >
-                    Sửa
+                    Edit
                   </button>
                   <button
                     onClick={() => onOpenMedicalModal(p)}
                     className="flex-1 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-1"
                   >
-                    <Stethoscope className="w-3.5 h-3.5" /> Bệnh án
+                    <Stethoscope className="w-3.5 h-3.5" /> Medical
                   </button>
                   <button
                     onClick={() => setPetToDelete(p)}
@@ -465,10 +465,10 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                    Đăng Tải Thú Cưng Mới Cần Tìm Chủ
+                    Publish New Pet for Adoption
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Người đăng: <strong className="text-sky-600 dark:text-sky-400">{currentUser.fullName}</strong> (AdminStaff)
+                    Publisher: <strong className="text-sky-600 dark:text-sky-400">{currentUser.fullName}</strong> (AdminStaff)
                   </p>
                 </div>
               </div>
@@ -481,43 +481,43 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
               {/* Basic Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tên bé thú cưng (*):</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Pet Name (*):</label>
                   <input
                     type="text"
                     required
                     value={newPet.name}
                     onChange={(e) => setNewPet({ ...newPet, name: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                    placeholder="Ví dụ: Bơ, Miu Miu, Corgi..."
+                    placeholder="e.g. Luna, Milo, Charlie..."
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Loài (*):</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Species (*):</label>
                   <select
                     value={newPet.species}
                     onChange={(e) => setNewPet({ ...newPet, species: e.target.value as PetSpecies })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   >
-                    <option value="Chó">Chó</option>
-                    <option value="Mèo">Mèo</option>
-                    <option value="Khác">Khác</option>
+                    <option value="Dog">Dogs</option>
+                    <option value="Cat">Cats</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Giống loài:</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Breed:</label>
                   <input
                     type="text"
                     value={newPet.breed}
                     onChange={(e) => setNewPet({ ...newPet, breed: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                    placeholder="Cún cỏ lai, Golden, Mèo mướp..."
+                    placeholder="Golden Retriever, Domestic Shorthair, Corgi..."
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tuổi (tháng):</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Age (Months):</label>
                   <input
                     type="number"
                     min="1"
@@ -528,14 +528,14 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Giới tính:</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gender:</label>
                   <select
                     value={newPet.gender}
                     onChange={(e) => setNewPet({ ...newPet, gender: e.target.value as any })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   >
-                    <option value="Đực">Đực</option>
-                    <option value="Cái">Cái</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
                   </select>
                 </div>
               </div>
@@ -545,7 +545,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <Upload className="w-4 h-4 text-sky-500" />
-                    <span>Đăng ảnh trực tiếp từ thiết bị / thư viện ảnh (*):</span>
+                    <span>Upload photo directly from your device / library (*):</span>
                   </label>
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                     File Picker Active
@@ -576,7 +576,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                       />
                       <div className="text-left space-y-1 flex-1 min-w-0">
                         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                          <Check className="w-3 h-3" /> Ảnh đã được chọn
+                          <Check className="w-3 h-3" /> Photo selected
                         </div>
                         <div className="font-semibold text-slate-800 dark:text-white text-xs truncate max-w-xs">
                           {newPet.fileName || 'pet_photo.jpg'}
@@ -589,7 +589,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                           }}
                           className="mt-1 px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold flex items-center gap-1 transition-colors"
                         >
-                          <Upload className="w-3 h-3" /> Chọn ảnh khác từ máy
+                          <Upload className="w-3 h-3" /> Choose another photo
                         </button>
                       </div>
                     </div>
@@ -599,9 +599,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                         <Upload className="w-5 h-5" />
                       </div>
                       <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">
-                        Bấm vào đây để chọn ảnh từ thư viện máy tính / điện thoại
+                        Click here to upload photo from your computer or phone
                       </div>
-                      <p className="text-[11px] text-slate-400">Hỗ trợ JPG, PNG, WEBP</p>
+                      <p className="text-[11px] text-slate-400">Supports JPG, PNG, WEBP</p>
                     </div>
                   )}
                 </div>
@@ -611,58 +611,58 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
               <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                   <Stethoscope className="w-4 h-4 text-emerald-500" />
-                  <span>Hồ sơ lịch sử khám chữa bệnh ban đầu (Tùy chọn):</span>
+                  <span>Initial Medical History & Intake Checkup (Optional):</span>
                 </label>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Chẩn đoán bệnh / Thể trạng:
+                      Initial Diagnosis / Health Condition:
                     </label>
                     <input
                       type="text"
                       value={newPet.initialDiagnosis}
                       onChange={(e) => setNewPet({ ...newPet, initialDiagnosis: e.target.value })}
-                      placeholder="Ví dụ: Khám tổng quát & tẩy giun..."
+                      placeholder="e.g. General checkup & deworming..."
                       className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Phác đồ điều trị / Thực hiện:
+                      Treatment / Procedures Performed:
                     </label>
                     <input
                       type="text"
                       value={newPet.initialTreatment}
                       onChange={(e) => setNewPet({ ...newPet, initialTreatment: e.target.value })}
-                      placeholder="Ví dụ: Đã tiêm mũi 1 vắc-xin 7 bệnh..."
+                      placeholder="e.g. Vaccinated with 7-in-1 core vaccine..."
                       className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Bác sĩ thú y phụ trách:
+                      Attending Veterinarian:
                     </label>
                     <input
                       type="text"
                       value={newPet.vetName}
                       onChange={(e) => setNewPet({ ...newPet, vetName: e.target.value })}
-                      placeholder="Bác sĩ thú y PawFund"
+                      placeholder="PawFund Veterinarian"
                       className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Thuốc đã dùng:
+                      Medications Prescribed:
                     </label>
                     <input
                       type="text"
                       value={newPet.medications}
                       onChange={(e) => setNewPet({ ...newPet, medications: e.target.value })}
-                      placeholder="Ví dụ: Canigen, Drontal..."
+                      placeholder="e.g. Canigen, Drontal..."
                       className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                     />
                   </div>
@@ -678,7 +678,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, vaccinated: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Đã tiêm phòng</span>
+                  <span>Vaccinated</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-medium cursor-pointer">
                   <input
@@ -687,7 +687,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, sterilized: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Đã triệt sản</span>
+                  <span>Neutered / Spayed</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-medium cursor-pointer">
                   <input
@@ -696,7 +696,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, goodWithKids: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Thân thiện trẻ nhỏ</span>
+                  <span>Good with kids</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-medium cursor-pointer">
                   <input
@@ -705,20 +705,20 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     onChange={(e) => setNewPet({ ...newPet, requiresYard: e.target.checked })}
                     className="rounded text-sky-600"
                   />
-                  <span>Cần sân vườn</span>
+                  <span>Requires yard</span>
                 </label>
               </div>
 
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Mô tả tính cách & hoàn cảnh tiếp nhận:
+                  Personality description & rescue background:
                 </label>
                 <textarea
                   rows={2}
                   value={newPet.description}
                   onChange={(e) => setNewPet({ ...newPet, description: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                  placeholder="Chia sẻ tính cách, thói quen ăn uống và điểm đáng yêu của bé..."
+                  placeholder="Share pet traits, temperament, and rescue details..."
                 />
               </div>
 
@@ -728,14 +728,14 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   onClick={() => setOpenAddModal(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold shadow-md disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Đang lưu vào Database...' : 'Đăng Tải Thú Cưng (Lưu Vào MySQL)'}
+                  {isSubmitting ? 'Saving to Database...' : 'Publish Pet (Save to Database)'}
                 </button>
               </div>
             </form>
@@ -749,7 +749,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
           <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                Chỉnh Sửa Thông Tin Bé {editingPet.name}
+                Edit Pet: {editingPet.name}
               </h3>
               <button onClick={() => setEditingPet(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
@@ -759,7 +759,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
             <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold mb-1">Tên bé:</label>
+                  <label className="block font-bold mb-1">Pet Name:</label>
                   <input
                     type="text"
                     value={editForm.name}
@@ -769,21 +769,21 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-bold mb-1">Trạng thái nhận nuôi:</label>
+                  <label className="block font-bold mb-1">Adoption Status:</label>
                   <select
                     value={editForm.adoptionStatus}
                     onChange={(e) => setEditForm({ ...editForm, adoptionStatus: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   >
-                    <option value="Ready">Sẵn sàng nhận nuôi (Ready)</option>
-                    <option value="Pending">Đang xử lý đơn (Pending)</option>
-                    <option value="Adopted">Đã nhận nuôi (Adopted)</option>
+                    <option value="Ready">Ready for Adoption</option>
+                    <option value="Pending">Pending Review</option>
+                    <option value="Adopted">Adopted</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold mb-1">Mô tả tính cách:</label>
+                <label className="block font-bold mb-1">Description & Traits:</label>
                 <textarea
                   rows={2}
                   value={editForm.description}
@@ -798,14 +798,14 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                   onClick={() => setEditingPet(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold"
                 >
-                  {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -821,9 +821,9 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Xác nhận xóa thú cưng</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">Confirm Delete Pet</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Bạn có chắc chắn muốn xóa bé <strong>{petToDelete.name}</strong> (#{petToDelete.petId}) khỏi cơ sở dữ liệu không?
+                Are you sure you want to delete <strong>{petToDelete.name}</strong> (#{petToDelete.petId}) from the database?
               </p>
             </div>
             <div className="flex gap-2 justify-center pt-2">
@@ -832,7 +832,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                 onClick={() => setPetToDelete(null)}
                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold"
               >
-                Hủy bỏ
+                Cancel
               </button>
               <button
                 type="button"
@@ -840,7 +840,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                 onClick={handleDeletePet}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
               >
-                {isDeleting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
               </button>
             </div>
           </div>

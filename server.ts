@@ -124,7 +124,7 @@ async function sendRealEmail({
   return {
     sent: false,
     provider: 'InAppOnly',
-    error: 'Chưa cấu hình API Key Email trong .env (thông báo đã được gửi trực tiếp lên giao diện Web)',
+    error: 'Email API Key not configured in .env (notifications sent directly to Web interface)',
   };
 }
 
@@ -144,11 +144,11 @@ async function safely<T>(label: string, fn: () => Promise<T>): Promise<T | undef
 
 function friendlyDbError(err: any): string {
   const msg = String(err?.message || err || '');
-  if (/foreign key/i.test(msg)) return 'Dữ liệu tham chiếu không hợp lệ (thú cưng hoặc người dùng không tồn tại trong cơ sở dữ liệu).';
-  if (/unknown column/i.test(msg)) return 'Cấu trúc bảng MySQL đã cũ. Hãy khởi động lại server hoặc bấm "Init Schema" để cập nhật.';
-  if (/data too long/i.test(msg)) return 'Dữ liệu nhập quá dài, vui lòng rút gọn nội dung.';
-  if (/max_allowed_packet/i.test(msg)) return 'Ảnh quá lớn. Hãy chọn ảnh nhỏ hơn.';
-  return msg || 'Lỗi máy chủ';
+  if (/foreign key/i.test(msg)) return 'Invalid reference data (pet or user does not exist in database).';
+  if (/unknown column/i.test(msg)) return 'MySQL schema is outdated. Please restart server or run "Init Schema" to update.';
+  if (/data too long/i.test(msg)) return 'Input data exceeds maximum allowed length.';
+  if (/max_allowed_packet/i.test(msg)) return 'Image payload too large. Please select a smaller photo.';
+  return msg || 'Internal Server Error';
 }
 
 async function startServer() {
@@ -327,22 +327,22 @@ async function startServer() {
     const { fullName, email, password, confirmPassword, phone, address } = req.body;
 
     if (!fullName || !email || !password) {
-      return res.status(400).json({ error: 'Vui lòng điền đầy đủ họ tên, email và mật khẩu' });
+      return res.status(400).json({ error: 'Please provide full name, email, and password' });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Mật khẩu phải có tối thiểu 6 ký tự' });
+      return res.status(400).json({ error: 'Password must have at least 6 characters' });
     }
 
     if (confirmPassword && password !== confirmPassword) {
-      return res.status(400).json({ error: 'Xác nhận mật khẩu không khớp' });
+      return res.status(400).json({ error: 'Confirm password does not match' });
     }
 
     try {
       if (isMySqlLive) {
         const existing = await MySqlService.getUserByEmailOrUsername(email);
         if (existing) {
-          return res.status(400).json({ error: 'Email này đã được đăng ký tài khoản' });
+          return res.status(400).json({ error: 'This email is already registered' });
         }
         const user = await MySqlService.createUser({
           fullName,
@@ -356,7 +356,7 @@ async function startServer() {
       } else {
         const existing = memoryUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
         if (existing) {
-          return res.status(400).json({ error: 'Email này đã được đăng ký tài khoản' });
+          return res.status(400).json({ error: 'This email is already registered' });
         }
         const newUser: User = {
           userId: `USR-${Date.now()}`,
@@ -373,7 +373,7 @@ async function startServer() {
         return res.json({ success: true, user: newUser, token: `tok-${Date.now()}` });
       }
     } catch (err: any) {
-      return res.status(500).json({ error: err.message || 'Lỗi khi đăng ký tài khoản' });
+      return res.status(500).json({ error: err.message || 'Error registering account' });
     }
   });
 
@@ -382,18 +382,18 @@ async function startServer() {
     const identifier = email || username;
 
     if (!identifier) {
-      return res.status(400).json({ error: 'Vui lòng nhập email hoặc tên đăng nhập' });
+      return res.status(400).json({ error: 'Please enter your email or username' });
     }
 
     try {
       if (isMySqlLive) {
         const userRow = await MySqlService.getUserByEmailOrUsername(identifier);
         if (!userRow) {
-          return res.status(401).json({ error: 'Tài khoản không tồn tại trong hệ thống' });
+          return res.status(401).json({ error: 'Account not found in system' });
         }
         // Verify password
         if (password && userRow.password_hash && password !== userRow.password_hash) {
-          return res.status(401).json({ error: 'Mật khẩu không chính xác' });
+          return res.status(401).json({ error: 'Incorrect password' });
         }
         const user: User = {
           userId: userRow.user_id,
@@ -414,12 +414,12 @@ async function startServer() {
             (u.username && u.username.toLowerCase() === identifier.toLowerCase())
         );
         if (!user) {
-          return res.status(401).json({ error: 'Tài khoản không tồn tại' });
+          return res.status(401).json({ error: 'Account does not exist' });
         }
         return res.json({ success: true, user, token: `tok-${Date.now()}` });
       }
     } catch (err: any) {
-      return res.status(500).json({ error: err.message || 'Lỗi khi đăng nhập' });
+      return res.status(500).json({ error: err.message || 'Login error' });
     }
   });
 
@@ -452,7 +452,7 @@ async function startServer() {
       if (isMySqlLive) {
         const updated = await MySqlService.updateUserAvatar(userId, avatarUrl);
         if (!updated && !memUser) {
-          return res.status(404).json({ error: 'Không tìm thấy tài khoản trong cơ sở dữ liệu.' });
+          return res.status(404).json({ error: 'Account not found in database.' });
         }
       }
 
@@ -531,7 +531,7 @@ async function startServer() {
         if (pet) return res.json(pet);
       }
       const pet = memoryPets.find((p) => p.petId === id);
-      if (!pet) return res.status(404).json({ error: 'Không tìm thấy thú cưng' });
+      if (!pet) return res.status(404).json({ error: 'Pet not found' });
       return res.json(pet);
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
@@ -542,7 +542,7 @@ async function startServer() {
   app.post('/api/pets', async (req, res) => {
     const role = req.headers['x-user-role'];
     if (role !== 'Admin' && role !== 'RescueStaff') {
-      return res.status(403).json({ error: 'Chỉ AdminStaff mới có quyền đăng tải thú cưng mới' });
+      return res.status(403).json({ error: 'Only AdminStaff can publish new pets' });
     }
 
     const {
@@ -573,7 +573,7 @@ async function startServer() {
     } = req.body;
 
     if (!name || !species) {
-      return res.status(400).json({ error: 'Vui lòng nhập tên và loài của thú cưng' });
+      return res.status(400).json({ error: 'Please enter pet name and species' });
     }
 
     const newPetId = `PET-${Date.now().toString().slice(-6)}`;
@@ -583,7 +583,7 @@ async function startServer() {
       species,
       breed: breed || 'Lai',
       ageMonths: Number(ageMonths) || 12,
-      gender: gender || 'Đực',
+      gender: gender || 'Male',
       healthStatus: healthStatus || 'Healthy',
       vaccinated: Boolean(vaccinated),
       sterilized: Boolean(sterilized),
@@ -592,7 +592,7 @@ async function startServer() {
       requiresYard: Boolean(requiresYard),
       goodWithKids: goodWithKids !== false,
       goodWithPets: goodWithPets !== false,
-      description: description || 'Thú cưng vừa được trạm cứu hộ tiếp nhận, đang tìm kiếm chủ mới yêu thương.',
+      description: description || 'Rescued pet currently at the shelter, looking for a loving forever home.',
       shelterId: shelterId || 'SHL-01',
       createdAt: new Date().toISOString(),
       imageUrl: imageUrl || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
@@ -618,8 +618,8 @@ async function startServer() {
               petId: newPetId,
               medicalDate: medicalDate || new Date().toISOString().split('T')[0],
               diagnosis: initialDiagnosis,
-              treatment: initialTreatment || 'Khám tổng quát & theo dõi thể trạng',
-              vetName: vetName || 'Bác sĩ thú y PawFund',
+              treatment: initialTreatment || 'General intake checkup and health monitoring',
+              vetName: vetName || 'PawFund Veterinarian',
               medications: medications || '',
             },
           ]
@@ -631,8 +631,8 @@ async function startServer() {
               petId: newPetId,
               medicalDate: medicalDate || new Date().toISOString().split('T')[0],
               diagnosis: initialDiagnosis,
-              treatment: initialTreatment || 'Khám tổng quát & theo dõi thể trạng',
-              vetName: vetName || 'Bác sĩ thú y PawFund',
+              treatment: initialTreatment || 'General intake checkup and health monitoring',
+              vetName: vetName || 'PawFund Veterinarian',
               medications: medications || '',
             },
           ]
@@ -677,7 +677,7 @@ async function startServer() {
         return res.json(updated);
       } else {
         const idx = memoryPets.findIndex((p) => p.petId === id);
-        if (idx === -1) return res.status(404).json({ error: 'Không tìm thấy thú cưng' });
+        if (idx === -1) return res.status(404).json({ error: 'Pet not found' });
         memoryPets[idx] = { ...memoryPets[idx], ...req.body };
         broadcastWsEvent('pet:updated', memoryPets[idx]);
         return res.json(memoryPets[idx]);
@@ -696,7 +696,7 @@ async function startServer() {
         memoryPets = memoryPets.filter((p) => p.petId !== id);
       }
       broadcastWsEvent('pet:deleted', { petId: id });
-      return res.json({ success: true, message: 'Đã xóa thú cưng thành công', deletedPetId: id });
+      return res.json({ success: true, message: 'Pet deleted successfully', deletedPetId: id });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
     }
@@ -715,12 +715,12 @@ async function startServer() {
         pet = memoryPets.find((p) => p.petId === id) || null;
       }
 
-      if (!pet) return res.status(404).json({ error: 'Không tìm thấy thú cưng' });
+      if (!pet) return res.status(404).json({ error: 'Pet not found' });
 
       // RULE: Once pet is Adopted, shelter medical updates are frozen!
       if (pet.adoptionStatus === 'Adopted') {
         return res.status(400).json({
-          error: 'Thú cưng này đã được nhận nuôi thành công! Dữ liệu y tế tại trạm đã được đóng băng. Người nhận nuôi hãy chia sẻ tình trạng bé qua Care Log.',
+          error: 'This pet has been adopted! Shelter medical records are frozen. Follow future updates via Care Log.',
         });
       }
 
@@ -728,9 +728,9 @@ async function startServer() {
         recordId: `MED-${Date.now()}`,
         petId: id,
         medicalDate: medicalDate || new Date().toISOString().split('T')[0],
-        diagnosis: diagnosis || 'Khám định kỳ',
-        treatment: treatment || 'Theo dõi sức khỏe',
-        vetName: vetName || 'Bác sĩ thú y PawFund',
+        diagnosis: diagnosis || 'Routine checkup',
+        treatment: treatment || 'Health monitoring',
+        vetName: vetName || 'PawFund Veterinarian',
         medications: medications || '',
       };
 
@@ -771,7 +771,7 @@ async function startServer() {
       if (availablePets.length === 0) {
         return res.json({
           matches: [],
-          message: 'Hiện trạm chưa có thú cưng nào sẵn sàng nhận nuôi. Hãy quay lại sau nhé!',
+          message: 'There are currently no adoptable pets available. Please check back soon!',
         });
       }
 
@@ -794,25 +794,25 @@ async function startServer() {
             healthStatus: p.healthStatus,
           }));
 
-          const prompt = `Bạn là chuyên gia kết nối thú cưng của trạm cứu hộ PawFund. 
-Dưới đây là thông tin về người muốn nhận nuôi:
-- Mô tả lối sống & mong muốn: "${lifestyleDescription}"
-- Ưu tiên loài: ${speciesPreference || 'Tất cả'}
-- Không gian sống: ${livingSpace || 'Không xác định'}
-- Có trẻ nhỏ trong nhà: ${familyWithKids ? 'Có' : 'Không'}
-- Đã có thú cưng khác: ${hasOtherPets ? 'Có' : 'Không'}
+          const prompt = `You are a pet matching specialist for PawFund Rescue Shelter. 
+Here is information regarding the prospective adopter:
+- Lifestyle description & preferences: "${lifestyleDescription}"
+- Species preference: ${speciesPreference || 'All'}
+- Living space: ${livingSpace || 'Unspecified'}
+- Has young children: ${familyWithKids ? 'Yes' : 'No'}
+- Already has other pets: ${hasOtherPets ? 'Yes' : 'No'}
 
-Danh sách các bé đang có tại trạm:
+List of shelter pets available for adoption:
 ${JSON.stringify(petSummaries, null, 2)}
 
-Hãy phân tích và chọn ra tối đa 5 bé phù hợp nhất theo độ tương thích từ cao xuống thấp.
-Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài mảng JSON hoặc object JSON) theo mẫu sau:
+Analyze and select up to 5 best matched pets ranked from highest compatibility to lowest.
+Return pure JSON format (do not use markdown formatting outside the JSON object):
 {
   "matches": [
     {
       "petId": "PET-xxx",
       "score": 95,
-      "reason": "Giải thích ngắn gọn 1-2 câu tiếng Việt ấm áp vì sao bé này rất hợp với hoàn cảnh của họ"
+      "reason": "A warm, concise 1-2 sentence explanation in English describing why this pet suits their situation"
     }
   ]
 }`;
@@ -836,7 +836,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
                   ? {
                       petId: m.petId,
                       score: Number(m.score) || 85,
-                      reason: m.reason || 'Bé rất phù hợp với nhịp sống và gia đình của bạn.',
+                      reason: m.reason || 'This pet fits your lifestyle and home environment wonderfully.',
                       pet: foundPet,
                     }
                   : null;
@@ -860,7 +860,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
           const sp = pet.species.toLowerCase();
           if (pref === sp || (pref === 'dog' && sp === 'chó') || (pref === 'cat' && sp === 'mèo')) {
             score += 15;
-            reasons.push(`Đúng loài bạn yêu thích (${pet.species})`);
+            reasons.push(`Matches preferred species (${pet.species})`);
           } else {
             score -= 20;
           }
@@ -869,7 +869,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
         if (familyWithKids) {
           if (pet.goodWithKids) {
             score += 10;
-            reasons.push('Rất hiền lành, an toàn với trẻ nhỏ');
+            reasons.push('Gentle and kid-friendly temperament');
           } else {
             score -= 15;
           }
@@ -878,7 +878,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
         if (livingSpace === 'Apartment') {
           if (!pet.requiresYard) {
             score += 10;
-            reasons.push('Rất thích hợp sống trong căn hộ chung cư');
+            reasons.push('Great fit for apartment living');
           } else {
             score -= 15;
           }
@@ -886,14 +886,14 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
 
         if (hasOtherPets && pet.goodWithPets) {
           score += 10;
-          reasons.push('Hòa đồng với các bạn thú cưng khác');
+          reasons.push('Gets along well with other pets');
         }
 
         const finalScore = Math.min(99, Math.max(50, score));
         return {
           petId: pet.petId,
           score: finalScore,
-          reason: reasons.length > 0 ? reasons.join('. ') : 'Tính cách thân thiện, rất ngoan và quấn người.',
+          reason: reasons.length > 0 ? reasons.join('. ') : 'Friendly, affectionate, and well-behaved companion.',
           pet,
         };
       });
@@ -937,7 +937,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
     } = req.body || {};
 
     if (!petId || !applicantName || !applicantEmail) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp đầy đủ thông tin đơn nhận nuôi' });
+      return res.status(400).json({ error: 'Please provide complete adoption application information' });
     }
 
     try {
@@ -949,10 +949,10 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
       }
 
       if (!pet) {
-        return res.status(404).json({ error: 'Không tìm thấy thú cưng này trong hệ thống.' });
+        return res.status(404).json({ error: 'Pet not found in system.' });
       }
       if (pet.adoptionStatus === 'Adopted') {
-        return res.status(400).json({ error: 'Bé thú cưng này đã được nhận nuôi rồi. Hãy chọn một bé khác nhé!' });
+        return res.status(400).json({ error: 'This pet has already been adopted. Please consider another rescue companion!' });
       }
 
       // Block duplicate open applications from the same person for the same pet
@@ -964,7 +964,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
           String(a.applicantEmail || '').toLowerCase() === String(applicantEmail).toLowerCase()
       );
       if (duplicate) {
-        return res.status(400).json({ error: 'Bạn đã gửi đơn cho bé này rồi và đơn đang chờ duyệt.' });
+        return res.status(400).json({ error: 'You have already submitted an application for this pet that is pending review.' });
       }
 
       const experience = petExperience || experienceDescription || '';
@@ -982,8 +982,8 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
         petExperience: experience,
       };
 
-      const notifTitle = 'Đơn nhận nuôi đã được gửi thành công';
-      const notifMessage = `Chúng tôi đã tiếp nhận hồ sơ xin nhận nuôi bé ${pet.name || 'thú cưng'} của bạn. Ban quản trị sẽ sớm duyệt và liên hệ!`;
+      const notifTitle = 'Adoption application submitted successfully';
+      const notifMessage = `We received your application for ${pet.name || 'pet'}. Shelter staff will review and contact you soon!`;
 
       let savedApp: AdoptionApplication;
       if (isMySqlLive) {
@@ -1051,7 +1051,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
     const { status, adminNotes } = req.body;
 
     if (status !== 'Approved' && status !== 'Rejected') {
-      return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+      return res.status(400).json({ error: 'Invalid application status' });
     }
 
     try {
@@ -1079,20 +1079,20 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
       }
 
       if (!appRecord) {
-        return res.status(404).json({ error: 'Không tìm thấy đơn nhận nuôi' });
+        return res.status(404).json({ error: 'Application not found' });
       }
 
-      const petName = petRecord?.name || appRecord.petName || 'bé cưng';
+      const petName = petRecord?.name || appRecord.petName || 'pet';
       const isApproved = status === 'Approved';
 
       // 1. In-App Notification (Always stored and delivered on Web)
       const notifTitle = isApproved
-        ? `🎉 Chúc mừng! Đơn nhận nuôi bé ${petName} đã được DUYỆT!`
-        : `Thông báo về đơn xin nhận nuôi bé ${petName}`;
+        ? `🎉 Congratulations! Your adoption application for ${petName} was APPROVED!`
+        : `Update on adoption application for ${petName}`;
 
       const notifMessage = isApproved
-        ? `Ban quản trị PawFund đã phê duyệt đơn xin nhận nuôi bé ${petName} của bạn. Lời nhắn từ trạm: "${adminNotes || 'Vui lòng đến trạm để hoàn tất thủ tục đón bé về nhà mới!'}"`
-        : `Đơn xin nhận nuôi bé ${petName} chưa thể phê duyệt vào thời điểm này. Lời nhắn: "${adminNotes || 'Rất cảm ơn bạn đã quan tâm!'}"`;
+        ? `PawFund shelter approved your application for ${petName}. Note: "${adminNotes || 'Please visit the shelter soon to complete the adoption!'}"`
+        : `Your application for ${petName} cannot be approved at this time. Note: "${adminNotes || 'Thank you for your interest!'}"`;
 
       if (isMySqlLive) {
         await MySqlService.createNotification({
@@ -1117,28 +1117,28 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
       const emailHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
           <h2 style="color: ${isApproved ? '#0284c7' : '#475569'}; margin-bottom: 16px;">${notifTitle}</h2>
-          <p>Xin chào <strong>${appRecord.applicantName}</strong>,</p>
+          <p>Hello <strong>${appRecord.applicantName}</strong>,</p>
           <p>${notifMessage}</p>
           ${
             isApproved
               ? `<div style="background-color: #f0f9ff; padding: 16px; border-radius: 12px; margin: 20px 0; border: 1px solid #bae6fd;">
-                  <h4 style="margin: 0 0 8px 0; color: #0369a1;">Các bước tiếp theo:</h4>
+                  <h4 style="margin: 0 0 8px 0; color: #0369a1;">Next Steps:</h4>
                   <ul style="margin: 0; padding-left: 20px; color: #0c4a6e;">
-                    <li>Mang theo CCCD/CMND đến trạm để ký hợp đồng nhận nuôi.</li>
-                    <li>Chuẩn bị chuồng vận chuyển hoặc dây dắt an toàn.</li>
-                    <li>Đăng tải hình ảnh đầu tiên của bé lên chuyên mục Care Log trên website PawFund!</li>
+                    <li>Bring valid government-issued ID to the shelter to sign the adoption agreement.</li>
+                    <li>Prepare a secure pet carrier or harness for transport.</li>
+                    <li>Share your pet's first photo updates on the Care Log at PawFund!</li>
                   </ul>
                 </div>`
               : ''
           }
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-          <p style="font-size: 12px; color: #94a3b8;">Hệ Thống Cứu Hộ & Nhận Nuôi Thú Cưng PawFund • Hotline: 0903112233</p>
+          <p style="font-size: 12px; color: #94a3b8;">PawFund Pet Rescue & Foster Network • Hotline: 0903112233</p>
         </div>
       `;
 
       const emailResult = await sendRealEmail({
         to: appRecord.applicantEmail || "",
-        subject: `[PawFund] Cập nhật kết quả đơn nhận nuôi #${id}`,
+        subject: `[PawFund] Status update on adoption application #${id}`,
         html: emailHtml,
       });
 
@@ -1205,19 +1205,19 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
     const content = String(note || notes || '').trim();
 
     if (!petId || !content) {
-      return res.status(400).json({ error: 'Vui lòng chọn thú cưng và nhập nội dung nhật ký chăm sóc' });
+      return res.status(400).json({ error: 'Please select a pet and write care log notes' });
     }
 
     const parsedWeight = weightKg !== undefined && weightKg !== null && weightKg !== '' ? Number(weightKg) : undefined;
     const logData: Partial<CareLog> = {
       petId,
-      authorName: authorName || adopterName || 'Chủ nuôi yêu thương',
+      authorName: authorName || adopterName || 'Loving Adopter',
       logDate: logDate || new Date().toISOString().split('T')[0],
       note: content,
       notes: content,
       imageUrl: imageUrl || '',
-      healthUpdate: healthUpdate || 'Khỏe mạnh, thích nghi tốt',
-      mood: mood || 'Vui vẻ & Tăng động',
+      healthUpdate: healthUpdate || 'Healthy and adapting well',
+      mood: mood || 'Playful & Energetic',
       userId: userId || undefined,
       weightKg: parsedWeight !== undefined && Number.isFinite(parsedWeight) ? parsedWeight : undefined,
     };
@@ -1230,7 +1230,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
         pet = memoryPets.find((p) => p.petId === petId) || null;
       }
       if (!pet) {
-        return res.status(404).json({ error: 'Không tìm thấy thú cưng này trong hệ thống.' });
+        return res.status(404).json({ error: 'Pet not found in system.' });
       }
 
       let saved: CareLog;
@@ -1302,7 +1302,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
 
     const amountNum = Number(amount);
     if (!amount || !Number.isFinite(amountNum) || amountNum <= 0) {
-      return res.status(400).json({ error: 'Vui lòng nhập số tiền quyên góp hợp lệ' });
+      return res.status(400).json({ error: 'Please enter a valid donation amount' });
     }
 
     try {
@@ -1311,22 +1311,22 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
       if (!targetLabel && shelterId) {
         const shelterList = isMySqlLive ? await MySqlService.getShelters().catch(() => memoryShelters) : memoryShelters;
         const sh = shelterList.find((x) => x.shelterId === shelterId);
-        if (sh) targetLabel = `Quỹ cứu hộ - ${sh.shelterName}`;
+        if (sh) targetLabel = `Rescue Fund - ${sh.shelterName}`;
       }
 
       const donData: Partial<Donation> = {
         userId: userId || undefined,
-        donorName: donorName || 'Nhà hảo tâm',
+        donorName: donorName || 'Kind Supporter',
         donorEmail: donorEmail || '',
         amount: amountNum,
-        target: targetLabel || 'Quỹ y tế & thức ăn cho thú cưng',
+        target: targetLabel || 'Medical & food rescue fund',
         message: message || '',
         paymentMethod: paymentMethod || 'VietQR',
         date: new Date().toISOString().split('T')[0],
       };
 
-      const notifTitle = '❤️ Quyên góp thành công! Cảm ơn tấm lòng của bạn';
-      const notifMessage = `PawFund đã nhận được số tiền ${amountNum.toLocaleString('vi-VN')} VNĐ từ bạn. Tấm lòng của bạn tiếp thêm sức sống cho các bé thú cưng!`;
+      const notifTitle = '❤️ Donation received! Thank you for your support';
+      const notifMessage = `PawFund received your donation of $${amountNum.toLocaleString('en-US')}. Your generosity helps care for rescue pets!`;
 
       let savedDon: Donation;
       if (isMySqlLive) {
@@ -1379,14 +1379,14 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
           (await safely('donation email', () =>
             sendRealEmail({
               to: donorEmail,
-              subject: '❤️ Thư cảm ơn quyên góp từ Trạm cứu hộ PawFund',
+              subject: '❤️ Thank You for Supporting PawFund Rescue',
               html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
-              <h2 style="color: #e11d48;">Cảm Ơn Tấm Lòng Vàng Của Bạn! ❤️</h2>
-              <p>Xin chào <strong>${escapeHtml(donData.donorName)}</strong>,</p>
-              <p>Trạm cứu hộ PawFund xin trân trọng ghi nhận khoản đóng góp trị giá <strong>${amountNum.toLocaleString('vi-VN')} VNĐ</strong> từ bạn.</p>
-              <p>Mục đích quyên góp: <em>${escapeHtml(donData.target)}</em></p>
-              <p>Mọi đóng góp của bạn đều được chuyển thẳng vào quỹ mua thức ăn, thuốc men và viện phí cứu hộ cho các bé chó mèo bị bỏ rơi.</p>
+              <h2 style="color: #e11d48;">Thank You for Your Generosity! ❤️</h2>
+              <p>Dear <strong>${escapeHtml(donData.donorName)}</strong>,</p>
+              <p>PawFund Animal Rescue gratefully acknowledges your contribution of <strong>$${amountNum.toLocaleString('en-US')}</strong>.</p>
+              <p>Designated Fund: <em>${escapeHtml(donData.target)}</em></p>
+              <p>100% of your donation directly provides food, medical care, and safe shelter for rescued pets.</p>
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
               <p style="font-size: 12px; color: #94a3b8;">PawFund Animal Rescue & Foster Network</p>
             </div>
@@ -1467,7 +1467,7 @@ Trả về định dạng JSON thuần túy (không dùng markdown khác ngoài 
   app.post('/api/upload', (req, res) => {
     const { dataUrl, fileName, fileSize, mimeType } = req.body;
     if (!dataUrl) {
-      return res.status(400).json({ error: 'Không nhận được dữ liệu hình ảnh' });
+      return res.status(400).json({ error: 'No image data received' });
     }
     res.json({
       imageId: `IMG-${Date.now()}`,

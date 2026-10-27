@@ -128,7 +128,7 @@ export const AdoptionApplicationModal: React.FC<AdoptionApplicationModalProps> =
     }
   };
 
-  const displaySpecies = pet.species === 'Chó' ? 'Dog' : pet.species === 'Mèo' ? 'Cat' : pet.species;
+  const displaySpecies = pet.species === 'Chó' || pet.species === 'Dog' ? 'Dog' : pet.species === 'Mèo' || pet.species === 'Cat' ? 'Cat' : pet.species;
 
   return (
     <div

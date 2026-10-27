@@ -32,7 +32,7 @@ export const SheltersAndDonation: React.FC<SheltersAndDonationProps> = ({ curren
   const [customAmount, setCustomAmount] = useState<string>('');
   const [donorName, setDonorName] = useState<string>(currentUser?.fullName || 'Kind Supporter');
   const [message, setMessage] = useState<string>('Supporting emergency medical care and nutritious food for the rescued pets!');
-  const [paymentMethod, setPaymentMethod] = useState<'VietQR' | 'MoMo' | 'Chuyển khoản' | any>('VietQR');
+  const [paymentMethod, setPaymentMethod] = useState<'VietQR' | 'MoMo' | 'Bank Transfer' | any>('VietQR');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [donationSuccess, setDonationSuccess] = useState<Donation | null>(null);
@@ -83,7 +83,7 @@ export const SheltersAndDonation: React.FC<SheltersAndDonationProps> = ({ curren
         shelterId: selectedShelterForDonation.shelterId,
         userId: isAnonymous ? undefined : currentUser.userId,
         donorEmail: isAnonymous ? undefined : currentUser.email,
-        target: `Quỹ cứu hộ - ${selectedShelterForDonation.shelterName}`,
+        target: `Rescue Fund - ${selectedShelterForDonation.shelterName}`,
         amount,
         paymentMethod: paymentMethod === 'Online Transfer' ? 'VietQR' : paymentMethod,
         donorName: isAnonymous ? 'Anonymous Benefactor' : donorName || currentUser.fullName,

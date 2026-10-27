@@ -43,10 +43,10 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
   ];
 
   const formatAge = (months: number) => {
-    if (months < 12) return `${months} tháng tuổi`;
+    if (months < 12) return `${months} months old`;
     const years = Math.floor(months / 12);
     const rem = months % 12;
-    return rem > 0 ? `${years} tuổi ${rem} tháng` : `${years} tuổi`;
+    return rem > 0 ? `${years} yr ${rem} mo` : `${years} years old`;
   };
 
   const isAdopted = pet.adoptionStatus === 'Adopted';
@@ -67,13 +67,13 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
             <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
               {pet.name}
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
-                Mã: {pet.petId}
+                ID: {pet.petId}
               </span>
             </h2>
 
             {isAdopted && (
               <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Đã Được Nhận Nuôi
+                <CheckCircle2 className="w-3.5 h-3.5" /> Adopted
               </span>
             )}
           </div>
@@ -125,32 +125,32 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 space-y-3">
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Độ tuổi</span>
+                    <span className="text-slate-400 block text-[11px]">Age</span>
                     <strong className="text-slate-800 dark:text-slate-200">{formatAge(pet.ageMonths)}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Giới tính</span>
+                    <span className="text-slate-400 block text-[11px]">Gender</span>
                     <strong className="text-slate-800 dark:text-slate-200">{pet.gender}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Mức năng lượng</span>
+                    <span className="text-slate-400 block text-[11px]">Energy Level</span>
                     <strong className="text-slate-800 dark:text-slate-200">{pet.energyLevel}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Tình trạng sức khỏe</span>
+                    <span className="text-slate-400 block text-[11px]">Health Status</span>
                     <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{pet.healthStatus}</strong>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap gap-2 text-xs">
                   <span className={`px-2.5 py-1 rounded-xl font-medium ${pet.vaccinated ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-500'}`}>
-                    {pet.vaccinated ? '✓ Đã tiêm phòng' : 'Chưa tiêm phòng'}
+                    {pet.vaccinated ? '✓ Vaccinated' : 'Unvaccinated'}
                   </span>
                   <span className={`px-2.5 py-1 rounded-xl font-medium ${pet.sterilized ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-500'}`}>
-                    {pet.sterilized ? '✓ Đã triệt sản' : 'Chưa triệt sản'}
+                    {pet.sterilized ? '✓ Neutered/Spayed' : 'Not Neutered'}
                   </span>
                   <span className="px-2.5 py-1 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 font-medium">
-                    {pet.requiresYard ? 'Cần sân vườn rộng' : 'Thích hợp căn hộ'}
+                    {pet.requiresYard ? 'Yard Required' : 'Apartment Friendly'}
                   </span>
                 </div>
               </div>
@@ -158,10 +158,10 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
               {isAdopted ? (
                 <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 space-y-2 text-xs text-amber-800 dark:text-amber-200">
                   <div className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Bé đã tìm được gia đình trọn đời!
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Found a forever home!
                   </div>
                   <p className="text-[11px] leading-relaxed">
-                    Hồ sơ y tế tại trạm đã được đóng băng. Bạn có thể theo dõi cuộc sống thường nhật của bé qua mục <strong>Care Log</strong> của chủ nuôi.
+                    Shelter medical records are now frozen. You can follow daily life updates via the owner's <strong>Care Log</strong>.
                   </p>
                   {onViewCareLog && (
                     <button
@@ -172,7 +172,7 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
                       }}
                       className="mt-1 w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                     >
-                      <BookOpen className="w-3.5 h-3.5" /> Xem Nhật Ký Chăm Sóc (Care Log)
+                      <BookOpen className="w-3.5 h-3.5" /> View Care Log
                     </button>
                   )}
                 </div>
@@ -183,7 +183,7 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
                   className="w-full py-3 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-extrabold text-xs shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2"
                 >
                   <Heart className="w-4 h-4 fill-current text-rose-300" />
-                  Nộp Đơn Nhận Nuôi {pet.name}
+                  Apply to Adopt {pet.name}
                 </button>
               )}
             </div>
@@ -199,7 +199,7 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
                   : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <Info className="w-4 h-4" /> Tổng Quan & Tính Cách
+              <Info className="w-4 h-4" /> Overview & Traits
             </button>
             <button
               onClick={() => setActiveTab('medical')}
@@ -209,7 +209,7 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
                   : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <Stethoscope className="w-4 h-4" /> Lịch Sử Khám Chữa Bệnh ({medicalRecords.length})
+              <Stethoscope className="w-4 h-4" /> Medical History ({medicalRecords.length})
             </button>
           </div>
 
@@ -217,31 +217,31 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
           {activeTab === 'info' && (
             <div className="space-y-4 text-xs">
               <div>
-                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-1.5">Mô tả về bé:</h4>
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-1.5">About Pet:</h4>
                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  {pet.description || 'Chưa có thông tin mô tả chi tiết.'}
+                  {pet.description || 'No detailed description available.'}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
-                  <span className="text-[11px] text-slate-400 block">Thân thiện với trẻ em</span>
+                  <span className="text-[11px] text-slate-400 block">Good with Kids</span>
                   <strong className="text-slate-800 dark:text-slate-200">
-                    {pet.goodWithKids ? 'Rất thân thiện & hiền lành' : 'Cần người lớn giám sát'}
+                    {pet.goodWithKids ? 'Friendly & Gentle' : 'Supervision Needed'}
                   </strong>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
-                  <span className="text-[11px] text-slate-400 block">Hòa đồng thú cưng khác</span>
+                  <span className="text-[11px] text-slate-400 block">Good with Other Pets</span>
                   <strong className="text-slate-800 dark:text-slate-200">
-                    {pet.goodWithPets ? 'Rất hòa đồng' : 'Thích ở một mình hơn'}
+                    {pet.goodWithPets ? 'Friendly & Sociable' : 'Prefers Being Alone'}
                   </strong>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
-                  <span className="text-[11px] text-slate-400 block">Yêu cầu không gian</span>
+                  <span className="text-[11px] text-slate-400 block">Space Requirement</span>
                   <strong className="text-slate-800 dark:text-slate-200">
-                    {pet.requiresYard ? 'Cần nhà có sân vườn' : 'Căn hộ chung cư đều được'}
+                    {pet.requiresYard ? 'Requires Yard' : 'Apartment OK'}
                   </strong>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
               {medicalRecords.length === 0 ? (
                 <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs text-slate-400">
                   <Stethoscope className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                  Bé chưa có lịch sử bệnh án ghi nhận hoặc thể trạng hoàn toàn khỏe mạnh khi tiếp nhận.
+                  No medical records recorded yet, or pet arrived in fully healthy condition.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -266,7 +266,7 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                           <Stethoscope className="w-3.5 h-3.5 text-sky-500" />
-                          Chẩn đoán: {med.diagnosis}
+                          Diagnosis: {med.diagnosis}
                         </span>
                         <span className="text-[11px] text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                           {med.medicalDate}
@@ -274,17 +274,17 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({
                       </div>
 
                       <div className="text-slate-600 dark:text-slate-300">
-                        <strong>Phác đồ / Điều trị:</strong> {med.treatment}
+                        <strong>Treatment:</strong> {med.treatment}
                       </div>
 
                       {med.medications && (
                         <div className="text-slate-600 dark:text-slate-300">
-                          <strong>Thuốc đã dùng:</strong> {med.medications}
+                          <strong>Medications:</strong> {med.medications}
                         </div>
                       )}
 
                       <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-800">
-                        Bác sĩ phụ trách: <span className="font-medium text-slate-600 dark:text-slate-300">{med.vetName}</span>
+                        Attending Vet: <span className="font-medium text-slate-600 dark:text-slate-300">{med.vetName}</span>
                       </div>
                     </div>
                   ))}

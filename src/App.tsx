@@ -157,7 +157,7 @@ export const App: React.FC = () => {
         api.getPets(),
         api.getShelters(),
         api.getUsers(),
-        api.getMySqlStatus().catch(() => ({ isConnected: false, error: 'Chưa kết nối MySQL' })),
+        api.getMySqlStatus().catch(() => ({ isConnected: false, error: 'MySQL not connected' })),
       ]);
       setPets(petsData);
       setShelters(sheltersData);
@@ -196,12 +196,12 @@ export const App: React.FC = () => {
   useRealtimeSocket(currentUser);
 
   useEffect(() => {
-    // 1. Thú cưng được thêm, cập nhật hoặc xóa
+    // 1. Pet added, updated, or deleted
     const unsubPetCreated = realtimeWs.on('pet:created', (payload) => {
       refreshPets();
       showGlobalToast(
-        'Thú cưng mới vừa được đăng tải! 🐾',
-        `Bé ${payload.data?.name || 'thú cưng'} đã có mặt tại trạm cứu hộ và đang tìm mái ấm.`
+        'New pet just published! 🐾',
+        `${payload.data?.name || 'A pet'} is now at the shelter looking for a loving home.`
       );
     });
 
@@ -213,7 +213,7 @@ export const App: React.FC = () => {
       refreshPets();
     });
 
-    // 2. Trạng thái đơn nhận nuôi được duyệt / cập nhật (cho Adopter)
+    // 2. Application status approved/updated (for Adopters)
     const unsubAppUpdated = realtimeWs.on('application:status_updated', (payload) => {
       const { status, petName, applicantEmail, adminNotes } = payload.data;
       const myEmail = currentUser?.email?.toLowerCase();
@@ -227,33 +227,33 @@ export const App: React.FC = () => {
             // ignore
           }
           showGlobalToast(
-            `🎉 Chúc mừng! Đơn nhận nuôi bé ${petName} ĐÃ ĐƯỢC DUYỆT!`,
-            `Lời nhắn từ trạm: "${adminNotes || 'Vui lòng đến trạm để hoàn tất thủ tục đón bé về nhà!'}"`
+            `🎉 Congratulations! Your adoption application for ${petName} was APPROVED!`,
+            `Message from shelter: "${adminNotes || 'Please visit our shelter to finalize adoption paperwork!'}"`
           );
         } else if (status === 'Rejected') {
           showGlobalToast(
-            `Thông báo về đơn xin nhận nuôi bé ${petName}`,
-            `Đơn của bạn chưa thể phê duyệt kỳ này. Lời nhắn: "${adminNotes || 'Cảm ơn bạn đã quan tâm!'}"`
+            `Update on your adoption application for ${petName}`,
+            `Your application cannot be approved at this time. Note: "${adminNotes || 'Thank you for your interest!'}"`
           );
         }
       }
     });
 
-    // 3. Đơn nhận nuôi mới được gửi (cho AdminStaff)
+    // 3. New adoption application submitted (for AdminStaff)
     const unsubAppCreated = realtimeWs.on('application:created', (payload) => {
       if (currentUser?.role === 'Admin') {
         showGlobalToast(
-          'Đơn nhận nuôi mới vừa được gửi! 📋',
-          `Người nộp: ${payload.data?.applicantName} - Thú cưng: ${payload.data?.petName || 'Bé cưng'}.`
+          'New adoption application submitted! 📋',
+          `Applicant: ${payload.data?.applicantName} - Pet: ${payload.data?.petName || 'Pet'}.`
         );
       }
     });
 
-    // 4. Nhật ký chăm sóc mới vừa đăng
+    // 4. New care log entry posted
     const unsubCareLog = realtimeWs.on('care_log:created', (payload) => {
       showGlobalToast(
-        'Nhật ký chăm sóc mới vừa đăng! 📖',
-        `Chủ nuôi ${payload.data?.authorName || 'yêu thương'} vừa chia sẻ khoảnh khắc vui vẻ mới của thú cưng.`
+        'New care log entry posted! 📖',
+        `Owner ${payload.data?.authorName || 'Adopter'} just shared a new happy moment with their pet.`
       );
     });
 
@@ -273,11 +273,11 @@ export const App: React.FC = () => {
       const res = await api.testMySqlConnection();
       if (res.success) {
         setMySqlStatus({ isConnected: true, serverVersion: res.serverVersion });
-        showGlobalToast('Kết nối MySQL thành công!', `Máy chủ MySQL ${res.serverVersion} đã hoạt động.`);
+        showGlobalToast('MySQL Connected Successfully!', `MySQL server ${res.serverVersion} is operational.`);
         refreshPets();
       } else {
         setMySqlStatus({ isConnected: false, error: res.message });
-        showGlobalToast('Chưa kết nối được MySQL', res.message);
+        showGlobalToast('Unable to connect to MySQL', res.message);
       }
     } catch (e: any) {
       setMySqlStatus({ isConnected: false, error: e.message });
@@ -336,8 +336,8 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               <Database className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>
-                <strong>Trạng thái MySQL:</strong> Chưa phát hiện máy chủ MySQL đang chạy. Hệ thống đang hoạt động ở chế độ dữ liệu an toàn (chỉ duy nhất tài khoản <code>AdminStaff</code>).
-                Để kết nối MySQL thực tế, hãy cấu hình các biến <code>MYSQL_HOST</code>, <code>MYSQL_PORT</code>, <code>MYSQL_USER</code>, <code>MYSQL_PASSWORD</code>, <code>MYSQL_DATABASE</code> trong file <code>.env</code>.
+                <strong>MySQL Status:</strong> No live MySQL server detected. The system is operating in safe fallback mode (using <code>AdminStaff</code> account).
+                To connect to a live MySQL database, configure <code>MYSQL_HOST</code>, <code>MYSQL_PORT</code>, <code>MYSQL_USER</code>, <code>MYSQL_PASSWORD</code>, <code>MYSQL_DATABASE</code> in your <code>.env</code> file.
               </span>
             </div>
             <button
@@ -346,7 +346,7 @@ export const App: React.FC = () => {
               className="px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shrink-0 flex items-center gap-1 transition-all"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRetryingDb ? 'animate-spin' : ''}`} />
-              <span>{isRetryingDb ? 'Đang thử lại...' : 'Kiểm tra kết nối'}</span>
+              <span>{isRetryingDb ? 'Retrying...' : 'Test Connection'}</span>
             </button>
           </div>
         </div>
@@ -361,14 +361,14 @@ export const App: React.FC = () => {
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-700 text-white p-6 sm:p-10 shadow-xl">
               <div className="relative z-10 max-w-2xl space-y-4">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md text-sky-100">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Hệ Thống Cứu Hộ & Nhận Nuôi Thú Cưng
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Pet Rescue & Foster Network
                 </div>
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-                  Trao Yêu Thương, <br />
-                  <span className="text-amber-300">Đón Người Bạn Nhỏ</span> Về Nhà
+                  Give Love, <br />
+                  <span className="text-amber-300">Bring a Friend</span> Home
                 </h1>
                 <p className="text-xs sm:text-sm text-sky-100 leading-relaxed max-w-lg">
-                  Kết nối trực tiếp với các bé chó mèo cần tìm chủ tại trạm cứu hộ. Mọi hồ sơ sức khỏe và lịch sử khám chữa bệnh đều được công khai minh bạch.
+                  Connect directly with rescue pets looking for a forever home. All health records and veterinary history are transparently tracked.
                 </p>
 
                 <div className="flex flex-wrap gap-3 pt-2">
@@ -376,13 +376,13 @@ export const App: React.FC = () => {
                     onClick={() => setActiveTab('matchmaker')}
                     className="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs shadow-lg flex items-center gap-2 transition-transform hover:scale-105"
                   >
-                    <Sparkles className="w-4 h-4" /> AI Tìm Bạn Bốn Chân Phù Hợp
+                    <Sparkles className="w-4 h-4" /> AI Companion Matchmaker
                   </button>
                   <button
                     onClick={() => setActiveTab('shelters')}
                     className="px-5 py-3 rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-xs flex items-center gap-2 border border-white/20"
                   >
-                    <Heart className="w-4 h-4 text-rose-300 fill-current" /> Quyên Góp Cho Trạm
+                    <Heart className="w-4 h-4 text-rose-300 fill-current" /> Donate to Shelter
                   </button>
                 </div>
               </div>
@@ -409,19 +409,19 @@ export const App: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                    Bạn chưa biết nên chọn bé cưng nào phù hợp?
+                    Not sure which pet is the best match for you?
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
-                      Tích hợp AI Gemini
+                      Powered by Gemini AI
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Mô tả không gian nhà và lối sống của bạn, AI sẽ tìm kiếm và gợi ý các bé có tính cách hòa hợp nhất!
+                    Describe your home and lifestyle; our AI will analyze pet personalities to recommend ideal companions!
                   </p>
                 </div>
               </div>
 
               <span className="px-4 py-2 rounded-xl bg-sky-500 text-white font-bold text-xs shrink-0 self-start sm:self-center shadow-md shadow-sky-500/20 group-hover:bg-sky-600 transition-colors">
-                Thử Ghép Đôi AI →
+                Try AI Matchmaker →
               </span>
             </div>
 
@@ -433,7 +433,7 @@ export const App: React.FC = () => {
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Tìm theo tên bé, giống loài hoặc đặc điểm (ví dụ: Corgi, mèo con, ngoan)..."
+                    placeholder="Search by name, breed, or traits (e.g. Corgi, kitten, playful)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
@@ -443,10 +443,10 @@ export const App: React.FC = () => {
                 {/* Species Filter */}
                 <div className="flex gap-1.5 overflow-x-auto pb-1 md:pb-0">
                   {[
-                    { key: 'all', label: 'Tất Cả Loài' },
-                    { key: 'Dog', label: 'Chó Cưng' },
-                    { key: 'Cat', label: 'Mèo Cưng' },
-                    { key: 'Other', label: 'Khác' },
+                    { key: 'all', label: 'All Species' },
+                    { key: 'Dog', label: 'Dogs' },
+                    { key: 'Cat', label: 'Cats' },
+                    { key: 'Other', label: 'Other' },
                   ].map((sp) => (
                     <button
                       key={sp.key}
@@ -466,7 +466,7 @@ export const App: React.FC = () => {
               {/* Secondary Filters */}
               <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-700 text-xs">
                 <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-semibold uppercase">
-                  <SlidersHorizontal className="w-3.5 h-3.5" /> Bộ Lọc:
+                  <SlidersHorizontal className="w-3.5 h-3.5" /> Filters:
                 </div>
 
                 {/* Energy */}
@@ -475,10 +475,10 @@ export const App: React.FC = () => {
                   onChange={(e) => setSelectedEnergy(e.target.value)}
                   className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs"
                 >
-                  <option value="all">Mức năng lượng: Tất cả</option>
-                  <option value="Low">Thấp (Trầm tính / Ngoan)</option>
-                  <option value="Medium">Trung bình (Cân bằng)</option>
-                  <option value="High">Cao (Năng động / Thích chạy nhảy)</option>
+                  <option value="all">Energy Level: All</option>
+                  <option value="Low">Low (Calm / Gentle)</option>
+                  <option value="Medium">Medium (Balanced)</option>
+                  <option value="High">High (Energetic / Active)</option>
                 </select>
 
                 {/* Status */}
@@ -487,10 +487,10 @@ export const App: React.FC = () => {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs"
                 >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="Ready">Sẵn sàng nhận nuôi</option>
-                  <option value="Pending">Đang xử lý hồ sơ</option>
-                  <option value="Adopted">Đã tìm được nhà mới</option>
+                  <option value="all">All Statuses</option>
+                  <option value="Ready">Ready for Adoption</option>
+                  <option value="Pending">Pending Review</option>
+                  <option value="Adopted">Adopted</option>
                 </select>
 
                 {/* Kid friendly check */}
@@ -501,7 +501,7 @@ export const App: React.FC = () => {
                     onChange={(e) => setKidFriendlyOnly(e.target.checked)}
                     className="rounded text-sky-600 focus:ring-sky-500"
                   />
-                  <span>Thân thiện với trẻ em</span>
+                  <span>Kid-Friendly</span>
                 </label>
               </div>
             </div>
@@ -510,18 +510,18 @@ export const App: React.FC = () => {
             {loading ? (
               <div className="text-center py-20 space-y-3">
                 <div className="w-10 h-10 border-3 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs text-slate-400">Đang tải danh sách thú cưng...</p>
+                <p className="text-xs text-slate-400">Loading pets roster...</p>
               </div>
             ) : filteredPets.length === 0 ? (
               <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-2">
                 <PawPrint className="w-10 h-10 text-slate-300 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                  Chưa có bé thú cưng nào phù hợp
+                  No pets match your criteria
                 </h3>
                 <p className="text-xs text-slate-400">
                   {currentUser?.role === 'Admin'
-                    ? 'Bạn đang đăng nhập với tư cách AdminStaff. Hãy vào mục "Quản Trị Trạm" để đăng tải thú cưng mới có sẵn tại trạm!'
-                    : 'Hãy thử điều chỉnh từ khóa tìm kiếm hoặc các tiêu chí bộ lọc nhé!'}
+                    ? 'You are signed in as AdminStaff. Go to "Admin Portal" to list new available pets!'
+                    : 'Try adjusting your search terms or filter criteria!' }
                 </p>
                 {currentUser?.role === 'Admin' && (
                   <div className="pt-2">
@@ -529,7 +529,7 @@ export const App: React.FC = () => {
                       onClick={() => setActiveTab('admin')}
                       className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition-all shadow-md"
                     >
-                      Đến Bàn Quản Trị Đăng Thú Cưng →
+                      Go to Admin Portal to Add Pets →
                     </button>
                   </div>
                 )}
@@ -538,7 +538,7 @@ export const App: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-xs font-bold text-slate-500">
-                    Hiển thị {filteredPets.length} bé thú cưng tại trạm
+                    Showing {filteredPets.length} pets at shelter
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -574,7 +574,7 @@ export const App: React.FC = () => {
           <SheltersAndDonation currentUser={currentUser} />
         )}
 
-        {/* VIEW 5: ADOPTER DASHBOARD (Bảng điều khiển & Hồ sơ Người nhận nuôi) */}
+        {/* VIEW 5: ADOPTER DASHBOARD */}
         {activeTab === 'adopter' && (
           currentUser ? (
             <AdopterDashboard
@@ -590,16 +590,16 @@ export const App: React.FC = () => {
                 🔐
               </div>
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">
-                Vui Lòng Đăng Nhập Tài Khoản Adopter
+                Please Sign In as an Adopter
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Đăng nhập hoặc đăng ký tài khoản để quản lý thú cưng đã nhận nuôi, theo dõi đơn đăng ký và lịch sử chăm sóc.
+                Sign in or register to manage your adopted pets, track adoption applications, and post care logs.
               </p>
               <button
                 onClick={() => setShowAuthModal(true)}
                 className="px-6 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-colors shadow-md"
               >
-                Đăng Nhập / Đăng Ký Ngay
+                Sign In / Sign Up Now
               </button>
             </div>
           )
@@ -628,7 +628,7 @@ export const App: React.FC = () => {
             </span>
           </div>
           <div>
-            Hệ thống nhận nuôi thú cưng • Cơ sở dữ liệu MySQL • AI Matching • Care Log trọn đời
+            Pet Adoption Platform • MySQL Database • AI Matching • Lifetime Care Logs
           </div>
         </div>
       </footer>
@@ -684,8 +684,8 @@ export const App: React.FC = () => {
             setSelectedPetForApply(null);
             refreshPets();
             showGlobalToast(
-              'Đơn nhận nuôi đã được gửi!',
-              `Chúng tôi đã tiếp nhận hồ sơ xin nhận nuôi bé ${selectedPetForApply.name}. Bạn sẽ nhận được thông báo ngay khi Ban quản trị duyệt hồ sơ!`
+              'Adoption application submitted!',
+              `We have received your application for ${selectedPetForApply.name}. You will be notified once reviewed!`
             );
           }}
         />
@@ -710,7 +710,7 @@ export const App: React.FC = () => {
           onLoginSuccess={(user) => {
             setCurrentUser(user);
             setShowAuthModal(false);
-            showGlobalToast('Đăng nhập thành công', `Chào mừng ${user.fullName} (${user.role})!`);
+            showGlobalToast('Sign in successful', `Welcome ${user.fullName} (${user.role})!`);
           }}
           allUsers={allUsers}
         />
