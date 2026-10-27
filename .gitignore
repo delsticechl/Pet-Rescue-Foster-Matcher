@@ -9,3 +9,4 @@ uploads/
 !.env.example
 certs/
 *.ca.pem
+/postgres_data
