@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Pet, Shelter, PetSpecies, PetHealthStatus, EnergyLevel, AdoptionStatus, User } from '../../types';
 import { api } from '../../services/api';
+import { readImageAsDataUrl } from '../../utils/imageResize';
 
 interface AdminPetManagerProps {
   pets: Pet[];
