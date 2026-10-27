@@ -477,6 +477,24 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
     } catch (e: any) {
       console.warn('⚠️ adoption_applications contact column migration skipped:', e.message);
     }
+    // Migration 4: ensure pets.gender is VARCHAR(20), not a narrow ENUM
+    // (older DB may have been created with ENUM('Male','Female') or Vietnamese values)
+    try {
+      const [genderColRows] = await pool.query<RowDataPacket[]>(
+        `SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'pets' AND COLUMN_NAME = 'gender'`,
+        [currentConfig.database]
+      );
+      const colType: string = ((genderColRows as any[])[0]?.COLUMN_TYPE || '').toLowerCase();
+      if (colType.startsWith('enum')) {
+        await pool.query(
+          `ALTER TABLE pets MODIFY COLUMN gender VARCHAR(20) NOT NULL`
+        );
+        console.log('✅ Migrated pets.gender from ENUM to VARCHAR(20)');
+      }
+    } catch (e: any) {
+      console.warn('⚠️ pets.gender migration skipped:', e.message);
+    }
     // ─────────────────────────────────────────────────────────────────────────
 
     // Seed ONLY AdminStaff user if users table is empty
@@ -542,6 +560,15 @@ export async function initMySqlSchema(): Promise<{ success: boolean; message: st
 
 function genId(prefix: string): string {
   return `${prefix}-${Date.now()}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+}
+
+/** Normalize gender value to English 'Male' | 'Female' regardless of source language. */
+function normalizeGender(gender?: string): string {
+  if (!gender) return 'Male';
+  const g = gender.trim();
+  if (g === 'Đực' || g.toLowerCase() === 'male' || g.toLowerCase() === 'm') return 'Male';
+  if (g === 'Cái' || g.toLowerCase() === 'female' || g.toLowerCase() === 'f') return 'Female';
+  return g; // pass through any other value as-is
 }
 
 /**
@@ -737,7 +764,7 @@ export const MySqlService = {
         pet.species,
         pet.breed || '',
         pet.ageMonths || 12,
-        pet.gender,
+        normalizeGender(pet.gender),
         pet.healthStatus || 'Healthy',
         pet.vaccinated ? 1 : 0,
         pet.sterilized ? 1 : 0,
@@ -818,7 +845,7 @@ export const MySqlService = {
     if (pet.species !== undefined) { updates.push('species = ?'); values.push(pet.species); }
     if (pet.breed !== undefined) { updates.push('breed = ?'); values.push(pet.breed); }
     if (pet.ageMonths !== undefined) { updates.push('age_months = ?'); values.push(pet.ageMonths); }
-    if (pet.gender !== undefined) { updates.push('gender = ?'); values.push(pet.gender); }
+    if (pet.gender !== undefined) { updates.push('gender = ?'); values.push(normalizeGender(pet.gender)); }
     if (pet.healthStatus !== undefined) { updates.push('health_status = ?'); values.push(pet.healthStatus); }
     if (pet.vaccinated !== undefined) { updates.push('vaccinated = ?'); values.push(pet.vaccinated ? 1 : 0); }
     if (pet.sterilized !== undefined) { updates.push('sterilized = ?'); values.push(pet.sterilized ? 1 : 0); }
