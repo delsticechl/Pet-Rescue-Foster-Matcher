@@ -862,12 +862,12 @@ export const AdopterDashboard: React.FC<AdopterDashboardProps> = ({
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg shrink-0">
-                      ₫
+                      $
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-base text-slate-800 dark:text-white">
-                          {(d.amount || 0).toLocaleString('vi-VN')} VNĐ
+                          {(d.amount || 0).toLocaleString('en-US')} USD
                         </span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                           Successful
