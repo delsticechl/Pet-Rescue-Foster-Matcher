@@ -857,7 +857,31 @@ export const MySqlService = {
     if (pet.description !== undefined) { updates.push('description = ?'); values.push(pet.description); }
     if (pet.shelterId !== undefined) { updates.push('shelter_id = ?'); values.push(await ensureShelterId(pet.shelterId)); }
 
-    if (updates.length === 0) return true;
+    // Photo change: update the primary image row (or create one if the pet has none)
+    const imageUrl = (pet as any).imageUrl as string | undefined;
+    let imageChanged = false;
+    if (imageUrl) {
+      const [existing] = await pool.query<RowDataPacket[]>(
+        'SELECT image_id, image_url FROM pet_images WHERE pet_id = ? ORDER BY is_primary DESC LIMIT 1',
+        [id]
+      );
+      if (existing.length === 0) {
+        await pool.query(
+          `INSERT INTO pet_images (image_id, pet_id, image_url, is_primary, file_name, file_size, mime_type, upload_source)
+           VALUES (?, ?, ?, 1, ?, ?, ?, 'LocalUpload')`,
+          [genId('IMG'), id, imageUrl, (pet as any).fileName || 'pet_photo.jpg', (pet as any).fileSize || 0, (pet as any).mimeType || 'image/jpeg']
+        );
+        imageChanged = true;
+      } else if (existing[0].image_url !== imageUrl) {
+        await pool.query(
+          'UPDATE pet_images SET image_url = ?, file_name = ?, file_size = ?, mime_type = ? WHERE image_id = ?',
+          [imageUrl, (pet as any).fileName || 'pet_photo.jpg', (pet as any).fileSize || 0, (pet as any).mimeType || 'image/jpeg', existing[0].image_id]
+        );
+        imageChanged = true;
+      }
+    }
+
+    if (updates.length === 0) return imageChanged || true;
     values.push(id);
 
     const [res] = await pool.query<ResultSetHeader>(
