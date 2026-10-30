@@ -35,6 +35,16 @@ const SAMPLE_PET_IMAGES = [
   'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=800&q=80',
 ];
 
+const SPECIES_OPTIONS = ['Dog', 'Cat', 'Other'];
+const HEALTH_OPTIONS = ['Healthy', 'In Treatment', 'Special Needs', 'Critical'];
+const ENERGY_OPTIONS = ['Low', 'Medium', 'High'];
+const inputCls =
+  'w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200';
+
+// Keep legacy/Vietnamese values already stored in the DB selectable so they aren't silently overwritten
+const withCurrent = (options: string[], current?: string) =>
+  current && !options.includes(current) ? [current, ...options] : options;
+
 export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
   pets,
   shelters,
@@ -148,7 +158,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
       species: pet.species,
       breed: pet.breed,
       ageMonths: pet.ageMonths,
-      gender: pet.gender,
+      gender: pet.gender === 'Đực' ? 'Male' : pet.gender === 'Cái' ? 'Female' : pet.gender,
       healthStatus: pet.healthStatus,
       vaccinated: pet.vaccinated,
       sterilized: pet.sterilized,
@@ -195,7 +205,17 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
 
     setIsSubmitting(true);
     try {
-      await api.updatePet(editingPet.petId, editForm, currentUser.role);
+      const originalImg =
+        editingPet.primaryImage || (editingPet.images && editingPet.images[0]?.imageUrl) || SAMPLE_PET_IMAGES[0];
+      const payload = { ...editForm };
+      // Only send the photo when it actually changed (data URLs are large)
+      if (payload.imageUrl === originalImg) {
+        delete payload.imageUrl;
+        delete payload.fileName;
+        delete payload.fileSize;
+        delete payload.mimeType;
+      }
+      await api.updatePet(editingPet.petId, payload, currentUser.role);
       setEditingPet(null);
       setEditForm(null);
       onRefresh();
@@ -743,52 +763,199 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
         </div>
       )}
 
-      {/* EDIT PET MODAL */}
+      {/* EDIT PET MODAL (all attributes) */}
       {editingPet && editForm && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in zoom-in-95 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                Edit Pet: {editingPet.name}
+                Edit Pet: {editingPet.name} <span className="text-xs font-normal text-slate-400">#{editingPet.petId}</span>
               </h3>
-              <button onClick={() => setEditingPet(null)} className="text-slate-400 hover:text-slate-600">
+              <button type="button" onClick={() => setEditingPet(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs max-h-[75vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold mb-1">Pet Name:</label>
                   <input
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                    className={inputCls}
                     required
                   />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Species:</label>
+                  <select
+                    value={editForm.species}
+                    onChange={(e) => setEditForm({ ...editForm, species: e.target.value })}
+                    className={inputCls}
+                  >
+                    {withCurrent(SPECIES_OPTIONS, editForm.species).map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">Breed:</label>
+                  <input
+                    type="text"
+                    value={editForm.breed}
+                    onChange={(e) => setEditForm({ ...editForm, breed: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Age (Months):</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editForm.ageMonths}
+                    onChange={(e) => setEditForm({ ...editForm, ageMonths: Number(e.target.value) })}
+                    className={inputCls}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Gender:</label>
+                  <select
+                    value={editForm.gender}
+                    onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                    className={inputCls}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">Health Status:</label>
+                  <select
+                    value={editForm.healthStatus}
+                    onChange={(e) => setEditForm({ ...editForm, healthStatus: e.target.value })}
+                    className={inputCls}
+                  >
+                    {withCurrent(HEALTH_OPTIONS, editForm.healthStatus).map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block font-bold mb-1">Adoption Status:</label>
                   <select
                     value={editForm.adoptionStatus}
                     onChange={(e) => setEditForm({ ...editForm, adoptionStatus: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                    className={inputCls}
                   >
                     <option value="Ready">Ready for Adoption</option>
                     <option value="Pending">Pending Review</option>
+                    <option value="Fostered">Fostered</option>
                     <option value="Adopted">Adopted</option>
                   </select>
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">Energy Level:</label>
+                  <select
+                    value={editForm.energyLevel}
+                    onChange={(e) => setEditForm({ ...editForm, energyLevel: e.target.value })}
+                    className={inputCls}
+                  >
+                    {withCurrent(ENERGY_OPTIONS, editForm.energyLevel).map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Shelter:</label>
+                  <select
+                    value={editForm.shelterId}
+                    onChange={(e) => setEditForm({ ...editForm, shelterId: e.target.value })}
+                    className={inputCls}
+                  >
+                    {!shelters.some((sh) => sh.shelterId === editForm.shelterId) && (
+                      <option value={editForm.shelterId}>{editForm.shelterId}</option>
+                    )}
+                    {shelters.map((sh) => (
+                      <option key={sh.shelterId} value={sh.shelterId}>{sh.shelterName}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Photo */}
+              <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Upload className="w-4 h-4 text-sky-500" />
+                  <span>Pet photo:</span>
+                </label>
+                <input
+                  type="file"
+                  ref={editFileInputRef}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file, 'edit');
+                  }}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <div className="flex items-center gap-4">
+                  {editForm.imageUrl && (
+                    <img
+                      src={editForm.imageUrl}
+                      alt="Preview"
+                      className="w-20 h-20 rounded-2xl object-cover ring-2 ring-sky-500 shadow-md shrink-0"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => editFileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold flex items-center gap-1 transition-colors"
+                  >
+                    <Upload className="w-3 h-3" /> Choose another photo
+                  </button>
+                </div>
+              </div>
+
+              {/* Characteristics */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                {([
+                  ['vaccinated', 'Vaccinated'],
+                  ['sterilized', 'Neutered / Spayed'],
+                  ['goodWithKids', 'Good with kids'],
+                  ['goodWithPets', 'Good with pets'],
+                  ['requiresYard', 'Requires yard'],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-1.5 font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!editForm[key]}
+                      onChange={(e) => setEditForm({ ...editForm, [key]: e.target.checked })}
+                      className="rounded text-sky-600"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+
               <div>
                 <label className="block font-bold mb-1">Description & Traits:</label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  className={inputCls}
                 />
               </div>
 
@@ -803,7 +970,7 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold"
+                  className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold disabled:opacity-50"
                 >
                   {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
