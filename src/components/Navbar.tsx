@@ -5,13 +5,12 @@ import {
   ShieldCheck,
   BookOpen,
   Building2,
-  Sun,
-  Moon,
   Sparkles,
   ChevronDown,
   Bell,
   User as UserIcon,
   Camera,
+  LogOut,
 } from 'lucide-react';
 import { User, InAppNotification } from '../types';
 import { api } from '../services/api';
@@ -24,9 +23,10 @@ interface NavbarProps {
   currentUser: User | null;
   allUsers: User[];
   onSwitchUser: (user: User) => void;
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
   onOpenAuth: () => void;
+  onLogout: () => void;
   onOpenAvatarUpload?: () => void;
   applicationCount?: number;
 }
@@ -37,9 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   allUsers: _allUsers,
   onSwitchUser: _onSwitchUser,
-  darkMode,
-  onToggleDarkMode,
   onOpenAuth,
+  onLogout,
   onOpenAvatarUpload,
   applicationCount = 0,
 }) => {
@@ -55,6 +54,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Load real in-app notifications
   const fetchNotifications = async () => {
+    if (!currentUser) {
+      setNotifications([]);
+      setNotificationsOpen(false);
+      return;
+    }
     try {
       const list = await api.getNotifications(currentUser?.email);
       setNotifications(list);
@@ -70,6 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Real-Time WebSocket notification listener
   useEffect(() => {
     const unsubNew = realtimeWs.on('notification:new', (payload) => {
+      if (!currentUser) return; // guests get no live notifications
       const notifData = payload.data;
       const myEmail = currentUser?.email?.toLowerCase();
       const targetEmail = notifData.recipientEmail?.toLowerCase();
@@ -212,78 +217,71 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Actions: Notification Bell + Theme Toggle + User Avatar / Account */}
           <div className="flex items-center space-x-2">
-            {/* Real Web Notification Bell */}
-            <div className="relative">
-              <button
-                id="notification-bell-btn"
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                title="Notifications"
-                className="relative p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black bg-rose-500 text-white flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm animate-pulse">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Popover Dropdown */}
-              {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
-                    <span className="font-bold text-xs text-slate-800 dark:text-white flex items-center gap-1.5">
-                      <Bell className="w-3.5 h-3.5 text-sky-500" /> Live Notifications
+            {/* Real Web Notification Bell (signed-in users only) */}
+            {currentUser && (
+              <div className="relative">
+                <button
+                  id="notification-bell-btn"
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  title="Notifications"
+                  className="relative p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black bg-rose-500 text-white flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm animate-pulse">
+                      {unreadCount}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {unreadCount} unread
-                    </span>
-                  </div>
+                  )}
+                </button>
 
-                  <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
-                    {notifications.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-slate-400">
-                        No notifications yet.
-                      </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.notificationId}
-                          onClick={() => handleMarkAsRead(n.notificationId)}
-                          className={`p-3 rounded-xl border text-xs cursor-pointer transition-colors space-y-1 ${
-                            n.isRead
-                              ? 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 opacity-75'
-                              : 'bg-sky-50/50 dark:bg-sky-950/30 border-sky-100 dark:border-sky-800'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <strong className="text-slate-800 dark:text-slate-200 text-[11px] flex items-center gap-1">
-                              {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block" />}
-                              {n.title}
-                            </strong>
-                            <span className="text-[10px] text-slate-400">
-                              {n.createdAt?.slice(11, 16)}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                            {n.message}
-                          </p>
+                {/* Notification Popover Dropdown */}
+                {notificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
+                      <span className="font-bold text-xs text-slate-800 dark:text-white flex items-center gap-1.5">
+                        <Bell className="w-3.5 h-3.5 text-sky-500" /> Live Notifications
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {unreadCount} unread
+                      </span>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                      {notifications.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-slate-400">
+                          No notifications yet.
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={n.notificationId}
+                            onClick={() => handleMarkAsRead(n.notificationId)}
+                            className={`p-3 rounded-xl border text-xs cursor-pointer transition-colors space-y-1 ${
+                              n.isRead
+                                ? 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 opacity-75'
+                                : 'bg-sky-50/50 dark:bg-sky-950/30 border-sky-100 dark:border-sky-800'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <strong className="text-slate-800 dark:text-slate-200 text-[11px] flex items-center gap-1">
+                                {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block" />}
+                                {n.title}
+                              </strong>
+                              <span className="text-[10px] text-slate-400">
+                                {n.createdAt?.slice(11, 16)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                              {n.message}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={onToggleDarkMode}
-              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
-            </button>
+                )}
+              </div>
+            )}
 
             {/* User Account / Role Badge */}
             {currentUser ? (
@@ -370,7 +368,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                         className="w-full text-left px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
                       >
                         <UserIcon className="w-3.5 h-3.5" />
-                        <span>Switch Account / Logout</span>
+                        <span>Switch Account</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 font-medium"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Log Out</span>
                       </button>
                     </div>
                   </div>
