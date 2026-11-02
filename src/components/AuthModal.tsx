@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, LogIn, UserPlus, ShieldCheck, Mail, Lock, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { X, LogIn, UserPlus, Mail, Lock, Phone, MapPin, CheckCircle2 } from 'lucide-react';
 import { User as UserType } from '../types';
 import { api } from '../services/api';
 
@@ -13,8 +13,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
   // Login Form
-  const [loginIdentifier, setLoginIdentifier] = useState('AdminStaff');
-  const [loginPassword, setLoginPassword] = useState('adminstaff123@');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   // Register Form with Real Password Verification
   const [fullName, setFullName] = useState('');
@@ -81,12 +81,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
     }
   };
 
-  const fillAdminCredentials = () => {
-    setLoginIdentifier('AdminStaff');
-    setLoginPassword('adminstaff123@');
-    setError(null);
-  };
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5 animate-in fade-in zoom-in-95">
@@ -100,7 +94,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
                 {mode === 'login' ? 'System Login' : 'Create New Account'}
               </h3>
               <p className="text-[11px] text-slate-400">
-                {mode === 'login' ? 'For Administrators (AdminStaff) & Adopters' : 'Create an adopter profile'}
+                {mode === 'login' ? 'Sign in to your PawFund account' : 'Create an adopter profile'}
               </p>
             </div>
           </div>
@@ -141,33 +135,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
           </button>
         </div>
 
-        {/* Highlighted Admin Account Quick Action */}
-        {mode === 'login' && (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 space-y-2 shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-300">
-                <ShieldCheck className="w-4 h-4 text-amber-400" /> Administrator Account (AdminStaff)
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 font-bold">
-                Publish & Manage Pets
-              </span>
-            </div>
-
-            <div className="text-[11px] text-slate-300 font-mono space-y-0.5 bg-black/40 p-2 rounded-xl border border-slate-800">
-              <div>Username: <strong className="text-white">AdminStaff</strong></div>
-              <div>Password: <strong className="text-amber-300">adminstaff123@</strong></div>
-            </div>
-
-            <button
-              type="button"
-              onClick={fillAdminCredentials}
-              className="w-full py-1.5 text-xs rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold transition-all"
-            >
-              Quick Fill AdminStaff Credentials
-            </button>
-          </div>
-        )}
-
         {error && (
           <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-xs">
             {error}
@@ -188,7 +155,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
                   required
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
-                  placeholder="adminstaff@pawfund.org or AdminStaff"
+                  placeholder="Email or username"
                   className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
                 />
               </div>
