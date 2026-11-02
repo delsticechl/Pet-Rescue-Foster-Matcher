@@ -16,12 +16,12 @@ export const swaggerSpec = {
   },
   servers: [
     {
-      url: 'http://localhost:3000/api',
-      description: 'Local development server',
+      url: process.env.APP_URL ? `${process.env.APP_URL}/api` : 'http://localhost:3000/api',
+      description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Local development server',
     },
     {
-      url: 'https://pawfund.up.railway.app/api',
-      description: 'Production server (Railway)',
+      url: 'http://localhost:3000/api',
+      description: 'Local development server',
     },
   ],
   tags: [
