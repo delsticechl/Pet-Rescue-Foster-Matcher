@@ -5,6 +5,8 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './src/swagger';
 import {
   INITIAL_USERS,
   INITIAL_SHELTERS,
@@ -284,6 +286,26 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+  // ==========================================
+  // SWAGGER UI — Online API Documentation
+  // ==========================================
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'PawFund API Docs',
+    customCss: `
+      .swagger-ui .topbar { background-color: #0c4a6e; }
+      .swagger-ui .topbar .download-url-wrapper { display: none; }
+      .swagger-ui .info .title { color: #0c4a6e; }
+    `,
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 2,
+    },
+  }));
+  // Also serve the raw OpenAPI JSON spec
+  app.get('/api/openapi.json', (_req, res) => res.json(swaggerSpec));
 
   // WebSocket Live Health Status API
   app.get('/api/ws/status', (_req, res) => {
