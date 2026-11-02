@@ -11,7 +11,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Pet, User, Shelter } from './types';
-import { INITIAL_USERS } from './data/initialData';
 import { api } from './services/api';
 import { Navbar } from './components/Navbar';
 import { PetCard } from './components/PetCard';
@@ -30,12 +29,14 @@ import confetti from 'canvas-confetti';
 
 type TabKey = 'pets' | 'matchmaker' | 'carelogs' | 'shelters' | 'admin' | 'adopter';
 const VALID_TABS: TabKey[] = ['pets', 'matchmaker', 'carelogs', 'shelters', 'admin', 'adopter'];
-const LS_USER = 'pawfund.session.user';
+const LS_USER = 'pawfund.session.user.v3';
+const LS_USER_LEGACY = 'pawfund.session.user';
 const LS_TAB = 'pawfund.session.tab';
 
 // Session helpers: never let storage problems (private mode, quota) break the app
 function loadSavedUser(): User | null {
   try {
+    localStorage.removeItem(LS_USER_LEGACY); // old builds auto-saved an admin session
     const raw = localStorage.getItem(LS_USER);
     if (!raw) return null;
     const u = JSON.parse(raw);
@@ -54,25 +55,11 @@ function loadSavedTab(): TabKey {
 }
 
 export const App: React.FC = () => {
-  // Diagnostics: proves this build is running and shows what was restored (remove when no longer needed)
-  useEffect(() => {
-    try {
-      console.info(
-        '[PawFund session v2] build active | saved user:',
-        localStorage.getItem(LS_USER) ? JSON.parse(localStorage.getItem(LS_USER)!).userId : '(none)',
-        '| saved tab:',
-        localStorage.getItem(LS_TAB) || '(none)'
-      );
-    } catch (e) {
-      console.warn('[PawFund session v2] localStorage is not available:', e);
-    }
-  }, []);
-
   // Global Data State
   const [pets, setPets] = useState<Pet[]>([]);
   const [shelters, setShelters] = useState<Shelter[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState<User | null>(() => loadSavedUser() || INITIAL_USERS[0] || null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => loadSavedUser());
   const [loading, setLoading] = useState<boolean>(true);
 
   // MySQL Connection Status
@@ -149,6 +136,20 @@ export const App: React.FC = () => {
     }
   }, [activeTab, currentUser]);
 
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setActiveTab('pets');
+    setSelectedPetForApply(null);
+    setShowAvatarModal(false);
+    try {
+      localStorage.removeItem(LS_USER);
+      localStorage.removeItem(LS_TAB);
+    } catch {
+      /* ignore */
+    }
+    showGlobalToast('Logged out', 'You have been signed out successfully.');
+  };
+
   // Initial Data Fetch & MySQL check
   const loadInitialData = async () => {
     setLoading(true);
@@ -163,14 +164,12 @@ export const App: React.FC = () => {
       setShelters(sheltersData);
       setAllUsers(usersData);
       setMySqlStatus(dbStatus as any);
-      // Re-attach the saved session to the fresh record (avatar, role, etc.)
+      // Re-attach the saved session to the fresh record (avatar, role, etc.).
+      // If that account no longer exists, sign out instead of guessing a user.
       const savedId = loadSavedUser()?.userId;
-      const freshUser = savedId ? usersData.find((u: User) => u.userId === savedId) : undefined;
-      console.info('[PawFund session v2] after load: saved id =', savedId || '(none)', '| found in user list =', !!freshUser);
-      if (freshUser) {
-        setCurrentUser(freshUser);
-      } else if (!currentUser && usersData.length > 0) {
-        setCurrentUser(usersData[0]);
+      if (savedId) {
+        const freshUser = usersData.find((u: User) => u.userId === savedId);
+        setCurrentUser(freshUser || null);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -326,6 +325,7 @@ export const App: React.FC = () => {
         darkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         onOpenAuth={() => setShowAuthModal(true)}
+        onLogout={handleLogout}
         onOpenAvatarUpload={() => setShowAvatarModal(true)}
       />
 
@@ -336,7 +336,7 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               <Database className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>
-                <strong>MySQL Status:</strong> No live MySQL server detected. The system is operating in safe fallback mode (using <code>AdminStaff</code> account).
+                <strong>MySQL Status:</strong> No live MySQL server detected. The system is operating in safe fallback mode (using temporary in-memory data).
                 To connect to a live MySQL database, configure <code>MYSQL_HOST</code>, <code>MYSQL_PORT</code>, <code>MYSQL_USER</code>, <code>MYSQL_PASSWORD</code>, <code>MYSQL_DATABASE</code> in your <code>.env</code> file.
               </span>
             </div>
@@ -565,14 +565,16 @@ export const App: React.FC = () => {
         )}
 
         {/* VIEW 3: CARE LOGS */}
-        {activeTab === 'carelogs' && currentUser && (
-          <CareLogView currentUser={currentUser} pets={pets} />
+        {activeTab === 'carelogs' && (
+          <CareLogView
+            currentUser={currentUser}
+            pets={pets}
+            onRequireLogin={() => setShowAuthModal(true)}
+          />
         )}
 
         {/* VIEW 4: SHELTERS & DONATIONS */}
-        {activeTab === 'shelters' && currentUser && (
-          <SheltersAndDonation currentUser={currentUser} />
-        )}
+        {activeTab === 'shelters' && <SheltersAndDonation currentUser={currentUser} />}
 
         {/* VIEW 5: ADOPTER DASHBOARD */}
         {activeTab === 'adopter' && (
