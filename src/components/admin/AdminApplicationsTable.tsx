@@ -37,45 +37,45 @@ export const AdminApplicationsTable: React.FC<AdminApplicationsTableProps> = ({
     return app.status === statusFilter;
   });
 
-  const handleApprove = async (app: AdoptionApplication) => {
-    const adminNotes = window.prompt(
-      `Enter approval message for ${app.applicantName}:`,
-      'Your application looks great! Please visit the shelter to finalize the adoption process.'
-    );
-    if (adminNotes === null) return;
+  const [dialog, setDialog] = useState<{
+    app: AdoptionApplication;
+    action: 'Approved' | 'Rejected';
+    notes: string;
+  } | null>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
-    setProcessingId(app.applicationId);
-    try {
-      await api.updateApplicationStatus(app.applicationId, 'Approved', adminNotes);
-      onRefresh();
-      showToast(
-        'Adoption application approved! 🎉',
-        `Approved application #${app.applicationId} for ${app.applicantName}. Notification and email sent successfully!`
-      );
-    } catch (err: any) {
-      alert(err.message || 'Error approving application');
-    } finally {
-      setProcessingId(null);
-    }
+  const openDialog = (app: AdoptionApplication, action: 'Approved' | 'Rejected') => {
+    setDialogError(null);
+    setDialog({
+      app,
+      action,
+      notes:
+        action === 'Approved'
+          ? 'Your application looks great! Please visit the shelter to finalize the adoption process.'
+          : 'Current living conditions or space do not meet the pet requirements at this time.',
+    });
   };
 
-  const handleReject = async (app: AdoptionApplication) => {
-    const adminNotes = window.prompt(
-      `Enter rejection reason for ${app.applicantName} (optional):`,
-      'Current living conditions or space do not meet the pet requirements at this time.'
-    );
-    if (adminNotes === null) return;
+  const handleApprove = (app: AdoptionApplication) => openDialog(app, 'Approved');
+  const handleReject = (app: AdoptionApplication) => openDialog(app, 'Rejected');
 
+  const confirmDialog = async () => {
+    if (!dialog) return;
+    const { app, action, notes } = dialog;
     setProcessingId(app.applicationId);
+    setDialogError(null);
     try {
-      await api.updateApplicationStatus(app.applicationId, 'Rejected', adminNotes);
+      await api.updateApplicationStatus(app.applicationId, action, notes);
       onRefresh();
+      setDialog(null);
       showToast(
-        'Application rejected',
-        `Updated application #${app.applicationId} status and sent notification to ${app.applicantName}.`
+        action === 'Approved' ? 'Adoption application approved! 🎉' : 'Application rejected',
+        action === 'Approved'
+          ? `Approved application #${app.applicationId} for ${app.applicantName}.`
+          : `Updated application #${app.applicationId} status for ${app.applicantName}.`
       );
     } catch (err: any) {
-      alert(err.message || 'Error rejecting application');
+      setDialogError(err.message || `Error ${action === 'Approved' ? 'approving' : 'rejecting'} application`);
     } finally {
       setProcessingId(null);
     }
@@ -214,6 +214,49 @@ export const AdminApplicationsTable: React.FC<AdminApplicationsTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {dialog && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+            <h4 className="text-base font-bold text-slate-800 dark:text-white">
+              {dialog.action === 'Approved' ? 'Approve' : 'Reject'} application for {dialog.app.applicantName}
+            </h4>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              {dialog.action === 'Approved' ? 'Approval message' : 'Rejection reason (optional)'}
+              <textarea
+                value={dialog.notes}
+                onChange={(e) => setDialog({ ...dialog, notes: e.target.value })}
+                rows={4}
+                className="mt-1 w-full p-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+              />
+            </label>
+            {dialogError && <p className="text-xs text-rose-600">{dialogError}</p>}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDialog(null)}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={processingId === dialog.app.applicationId}
+                onClick={confirmDialog}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold text-white disabled:opacity-60 ${
+                  dialog.action === 'Approved' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                {processingId === dialog.app.applicationId
+                  ? 'Saving...'
+                  : dialog.action === 'Approved'
+                  ? 'Confirm approve'
+                  : 'Confirm reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

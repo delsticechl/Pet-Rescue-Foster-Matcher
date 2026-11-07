@@ -1030,7 +1030,7 @@ export const MySqlService = {
     if (status === 'Approved') {
       const [appRows] = await pool.query<RowDataPacket[]>('SELECT pet_id FROM adoption_applications WHERE application_id = ?', [appId]);
       if (appRows.length > 0) {
-        await pool.query('UPDATE pets SET adoption_status = "Adopted" WHERE pet_id = ?', [appRows[0].pet_id]);
+        await pool.query('UPDATE pets SET adoption_status = ? WHERE pet_id = ?', ['Adopted', appRows[0].pet_id]);
       }
     }
 
@@ -1241,6 +1241,7 @@ export const MySqlService = {
 
   async createUser(data: {
     fullName: string;
+    username?: string;
     email: string;
     passwordHash: string;
     phone?: string;
@@ -1249,12 +1250,13 @@ export const MySqlService = {
   }): Promise<User> {
     const pool = getMySqlPool();
     const userId = `USR-${Date.now()}`;
+    const username = data.username || data.email.split('@')[0];
     await pool.query(
       `INSERT INTO users (user_id, username, full_name, email, password_hash, phone, address, role, avatar_url)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
-        data.email.split('@')[0],
+        username,
         data.fullName,
         data.email,
         data.passwordHash,
@@ -1267,7 +1269,7 @@ export const MySqlService = {
 
     return {
       userId,
-      username: data.email.split('@')[0],
+      username,
       fullName: data.fullName,
       email: data.email,
       phone: data.phone || '',

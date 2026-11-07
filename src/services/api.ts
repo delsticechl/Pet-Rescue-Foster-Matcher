@@ -54,6 +54,7 @@ export const api = {
 
   async register(data: {
     fullName: string;
+    username?: string;
     email: string;
     password: string;
     confirmPassword?: string;

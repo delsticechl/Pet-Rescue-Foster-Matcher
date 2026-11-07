@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, LogIn, UserPlus, Mail, Lock, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { X, LogIn, UserPlus, Mail, Lock, Phone, MapPin, CheckCircle2, AtSign } from 'lucide-react';
 import { User as UserType } from '../types';
 import { api } from '../services/api';
 
@@ -18,6 +18,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
 
   // Register Form with Real Password Verification
   const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -52,6 +53,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
       setError('Please enter your full name and email');
       return;
     }
+    if (!/^[A-Za-z0-9_.]{3,30}$/.test(username.trim())) {
+      setError('Username must be 3-30 characters: letters, numbers, underscore or dot only');
+      return;
+    }
+    if (phone.trim() && !/^\+?[0-9\s\-()]{8,15}$/.test(phone.trim())) {
+      setError('Phone number must contain only digits (8-15 characters)');
+      return;
+    }
     if (registerPassword.length < 6) {
       setError('Password must be at least 6 characters');
       return;
@@ -66,6 +75,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
     try {
       const res = await api.register({
         fullName,
+        username: username.trim(),
         email,
         password: registerPassword,
         confirmPassword,
@@ -205,6 +215,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Username <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <AtSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  minLength={3}
+                  maxLength={30}
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.replace(/[^A-Za-z0-9_.]/g, ''))}
+                  placeholder="janedoe"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">3-30 characters: letters, numbers, _ or . — you can log in with it.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                 Email Address <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -273,8 +304,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
                   <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
+                    inputMode="tel"
+                    maxLength={15}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9+\-\s()]/g, ''))}
                     placeholder="0912345678"
                     className="w-full pl-8 pr-2.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
                   />

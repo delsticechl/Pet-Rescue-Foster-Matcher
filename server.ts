@@ -346,7 +346,7 @@ async function startServer() {
   // 2. AUTHENTICATION (Real Register & Login)
   // ==========================================
   app.post('/api/auth/register', async (req, res) => {
-    const { fullName, email, password, confirmPassword, phone, address } = req.body;
+    const { fullName, username: rawUsername, email, password, confirmPassword, phone, address } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({ error: 'Please provide full name, email, and password' });
@@ -354,6 +354,16 @@ async function startServer() {
 
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must have at least 6 characters' });
+    }
+
+    if (phone && !/^\+?[0-9\s\-()]{8,15}$/.test(String(phone).trim())) {
+      return res.status(400).json({ error: 'Phone number must contain only digits (8-15 characters)' });
+    }
+
+    // Username is chosen by the user; fall back to the email prefix for older API clients.
+    const username = String(rawUsername ?? '').trim() || String(email).split('@')[0];
+    if (!/^[A-Za-z0-9_.]{3,30}$/.test(username)) {
+      return res.status(400).json({ error: 'Username must be 3-30 characters: letters, numbers, underscore or dot only' });
     }
 
     if (confirmPassword && password !== confirmPassword) {
@@ -366,8 +376,13 @@ async function startServer() {
         if (existing) {
           return res.status(400).json({ error: 'This email is already registered' });
         }
+        const usernameTaken = await MySqlService.getUserByEmailOrUsername(username);
+        if (usernameTaken) {
+          return res.status(400).json({ error: 'This username is already taken' });
+        }
         const user = await MySqlService.createUser({
           fullName,
+          username,
           email,
           passwordHash: password,
           phone,
@@ -380,9 +395,12 @@ async function startServer() {
         if (existing) {
           return res.status(400).json({ error: 'This email is already registered' });
         }
+        if (memoryUsers.some((u) => (u.username || '').toLowerCase() === username.toLowerCase())) {
+          return res.status(400).json({ error: 'This username is already taken' });
+        }
         const newUser: User = {
           userId: `USR-${Date.now()}`,
-          username: email.split('@')[0],
+          username,
           fullName,
           email,
           phone: phone || '',
@@ -395,6 +413,9 @@ async function startServer() {
         return res.json({ success: true, user: newUser, token: `tok-${Date.now()}` });
       }
     } catch (err: any) {
+      if (err?.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: 'This username or email is already registered' });
+      }
       return res.status(500).json({ error: err.message || 'Error registering account' });
     }
   });
@@ -1083,9 +1104,10 @@ Return pure JSON format (do not use markdown formatting outside the JSON object)
       if (isMySqlLive) {
         const allApps = await MySqlService.getApplications();
         appRecord = allApps.find((a) => a.applicationId === id);
-        if (appRecord) {
-          petRecord = await MySqlService.getPetById(appRecord.petId);
+        if (!appRecord) {
+          return res.status(404).json({ error: 'Application not found' });
         }
+        petRecord = await safely('load pet', () => MySqlService.getPetById(appRecord!.petId)) ?? null;
         await MySqlService.updateApplicationStatus(id, status, adminNotes);
       } else {
         appRecord = memoryApplications.find((a) => a.applicationId === id);
@@ -1117,12 +1139,14 @@ Return pure JSON format (do not use markdown formatting outside the JSON object)
         : `Your application for ${petName} cannot be approved at this time. Note: "${adminNotes || 'Thank you for your interest!'}"`;
 
       if (isMySqlLive) {
-        await MySqlService.createNotification({
-          recipientEmail: appRecord.applicantEmail,
-          title: notifTitle,
-          message: notifMessage,
-          type: 'adoption',
-        });
+        await safely('adoption status notification', () =>
+          MySqlService.createNotification({
+            recipientEmail: appRecord!.applicantEmail,
+            title: notifTitle,
+            message: notifMessage,
+            type: 'adoption',
+          })
+        );
       } else {
         memoryNotifications.unshift({
           notificationId: `NOTIF-${Date.now()}`,
@@ -1158,11 +1182,14 @@ Return pure JSON format (do not use markdown formatting outside the JSON object)
         </div>
       `;
 
-      const emailResult = await sendRealEmail({
-        to: appRecord.applicantEmail || "",
-        subject: `[PawFund] Status update on adoption application #${id}`,
-        html: emailHtml,
-      });
+      const emailResult =
+        (await safely('adoption status email', () =>
+          sendRealEmail({
+            to: appRecord!.applicantEmail || '',
+            subject: `[PawFund] Status update on adoption application #${id}`,
+            html: emailHtml,
+          })
+        )) ?? { sent: false, provider: 'none', error: 'Email step failed' };
 
       // Real-Time WebSocket broadcast to notify adopter instantly
       broadcastWsEvent('application:status_updated', {
@@ -1198,7 +1225,8 @@ Return pure JSON format (do not use markdown formatting outside the JSON object)
         emailDelivery: emailResult,
       });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error('PUT /api/applications/:id/status failed:', err);
+      res.status(500).json({ error: friendlyDbError(err) });
     }
   });
 

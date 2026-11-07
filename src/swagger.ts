@@ -217,6 +217,7 @@ export const swaggerSpec = {
                 required: ['fullName', 'email', 'password'],
                 properties: {
                   fullName: { type: 'string', example: 'Jane Doe' },
+                  username: { type: 'string', pattern: '^[A-Za-z0-9_.]{3,30}$', example: 'janedoe', description: 'Unique username (3-30 chars: letters, numbers, _ or .). Defaults to the email prefix if omitted.' },
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', minLength: 6 },
                   confirmPassword: { type: 'string' },
