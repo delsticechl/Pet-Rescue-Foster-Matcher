@@ -560,6 +560,58 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                 </div>
               </div>
 
+              {/* Health, status, energy & shelter */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Health Status:</label>
+                  <select
+                    value={newPet.healthStatus}
+                    onChange={(e) => setNewPet({ ...newPet, healthStatus: e.target.value as PetHealthStatus })}
+                    className={inputCls}
+                  >
+                    {HEALTH_OPTIONS.map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Adoption Status:</label>
+                  <select
+                    value={newPet.adoptionStatus}
+                    onChange={(e) => setNewPet({ ...newPet, adoptionStatus: e.target.value as AdoptionStatus })}
+                    className={inputCls}
+                  >
+                    <option value="Ready">Ready for Adoption</option>
+                    <option value="Pending">Pending Review</option>
+                    <option value="Fostered">Fostered</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Energy Level:</label>
+                  <select
+                    value={newPet.energyLevel}
+                    onChange={(e) => setNewPet({ ...newPet, energyLevel: e.target.value as EnergyLevel })}
+                    className={inputCls}
+                  >
+                    {ENERGY_OPTIONS.map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Shelter:</label>
+                  <select
+                    value={newPet.shelterId}
+                    onChange={(e) => setNewPet({ ...newPet, shelterId: e.target.value })}
+                    className={inputCls}
+                  >
+                    {shelters.map((sh) => (
+                      <option key={sh.shelterId} value={sh.shelterId}>{sh.shelterName}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* DIRECT PHOTO UPLOAD FROM DEVICE */}
               <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
@@ -717,6 +769,15 @@ export const AdminPetManager: React.FC<AdminPetManagerProps> = ({
                     className="rounded text-sky-600"
                   />
                   <span>Good with kids</span>
+                </label>
+                <label className="flex items-center gap-1.5 font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newPet.goodWithPets}
+                    onChange={(e) => setNewPet({ ...newPet, goodWithPets: e.target.checked })}
+                    className="rounded text-sky-600"
+                  />
+                  <span>Good with pets</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-medium cursor-pointer">
                   <input
