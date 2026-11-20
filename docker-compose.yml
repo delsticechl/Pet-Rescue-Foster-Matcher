@@ -8,4 +8,4 @@ services:
     environment:
       NODE_ENV: production
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
