@@ -73,7 +73,7 @@ export const SmartMatchmaker: React.FC<SmartMatchmakerProps> = ({ onViewDetails,
             <Sparkles className="w-3.5 h-3.5 text-amber-300" /> AI Pet Matchmaker • Smart Companion Finder
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Match the Perfect Companion for Your Lifestyle 🐾
+            Match the Perfect Companion 
           </h1>
           <p className="text-xs sm:text-sm text-sky-100 leading-relaxed">
             Instead of manual filters, share your lifestyle, routine, and living environment.
